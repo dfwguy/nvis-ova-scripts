@@ -1,0 +1,99 @@
+# Reference
+
+Site-specific values below are from one deployment. The "How to discover" column tells you how to
+find your own.
+
+## Paths
+
+| Item | Path (this site) | How to discover |
+|---|---|---|
+| NFS export | `192.168.10.2:/cm/shared` | Head node `/etc/exports` |
+| Local mount point | `/cm/shared` | Must match the export path exactly |
+| Slurm binaries | `/cm/local/apps/slurm/25.05/bin` | `ssh <hn> 'readlink -f $(which sinfo)'` |
+| Slurm libraries | `/cm/local/apps/slurm/25.05/lib64/slurm` | `ldd $(which sinfo)` |
+| `slurm.conf` (source) | `/cm/shared/apps/slurm/etc/slurm/slurm.conf` | `ls /cm/shared/apps/slurm/etc/slurm/` |
+| `slurm.conf` (local default) | `/etc/slurm/slurm.conf` | Symlink to the source |
+| `slurmdbd.conf` | `/cm/shared/apps/slurm/etc/slurmdbd.conf` | Same directory |
+| Munge key (cluster) | `/cm/shared/apps/slurm/var/munge/keys/munge.key` | `ssh <hn> 'systemctl cat munge \| grep -i key'` |
+| Munge key (local) | `/etc/munge/munge.key` | munged's compiled-in default |
+
+## Accounts
+
+| Account | UID:GID (this site) | Must match cluster? | How to discover |
+|---|---|---|---|
+| `slurm` | `450:450` | Yes | `ssh <hn> 'id slurm'` |
+| End user (`nvis`) | `1001:1001` | Yes, for `squeue` output | `ssh <hn> 'id <user>'` |
+| `munge` | Package-assigned | No — only key bytes matter | n/a |
+
+## Network
+
+| Item | Value | Source |
+|---|---|---|
+| `SlurmctldHost` | `nscale-hn1` | `slurm.conf` |
+| `SlurmctldPort` | `6817` | `slurm.conf` |
+| `AccountingStorageHost` | `master` (BCM alias for head node) | `slurm.conf` |
+| Head node IP | `192.168.10.2` | Site network |
+
+## Relevant config settings
+
+| Setting | Value | Effect on a client |
+|---|---|---|
+| `SlurmUser` | `slurm` | Name must resolve locally or config parsing fails |
+| `PrivateData` | `accounts,users,jobs,reservations` | `squeue`/`sacct` filter by caller UID; mismatch returns empty, not an error |
+| `SlurmctldHost` | `nscale-hn1` | Must be resolvable and reachable on 6817 |
+
+## Files this setup creates or modifies
+
+| File | Purpose | Action |
+|---|---|---|
+| `/etc/fstab` | Persistent NFS mount | Append one line |
+| `/etc/hosts` | Resolve `nscale-hn1` and `master` | Append one line |
+| `/etc/munge/munge.key` | Auth credential, `munge:munge`, `0400` | Create |
+| `/etc/slurm/slurm.conf` | Symlink to shared config | Create |
+| `/etc/profile.d/slurm.sh` | PATH and `SLURM_CONF` for login shells | Create, `0644` |
+| `/etc/sudoers.d/slurm-path` | `secure_path` including Slurm bin | Create, `0440` |
+| `/etc/passwd`, `/etc/group` | `slurm` account; renumbered end user | Modify |
+| `/cm/local/apps/slurm/25.05/` | Extracted binaries and libraries | Create |
+
+## Packages
+
+| Package | Source | Notes |
+|---|---|---|
+| `munge`, `libmunge2` | Ubuntu `noble-updates/universe` | Normal apt install |
+| `nfs-common` | Ubuntu | Only if `mount.nfs` is missing |
+| `slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb` | BCM head node | Extract with `dpkg -x`, do not apt install |
+
+Unresolvable dependencies in the BCM `.deb`: `cm-pmix4-local`, `cm-ucx-local`, `cm-hwloc2-local`,
+`cm-config-cm (= 11.0)`. None are required by the client query tools.
+
+## Command quick reference
+
+Discover the cluster's Slurm binary location:
+
+```
+ssh <headnode> 'readlink -f $(which sinfo)'
+```
+
+Discover the munge key location:
+
+```
+ssh <headnode> 'systemctl cat munge | grep -i key'
+```
+
+Read the client-relevant config settings:
+
+```
+grep -Ei 'SlurmctldHost|SlurmctldPort|AccountingStorageHost|SlurmUser|PrivateData' /etc/slurm/slurm.conf
+```
+
+Inspect a `.deb`'s target paths before installing:
+
+```
+dpkg -c <package>.deb | awk '{print $6}' | sort -u | head -30
+```
+
+Full health check:
+
+```
+mountpoint /cm/shared && munge -n | unmunge && sinfo | head -3 && squeue | head -3
+```
