@@ -6,11 +6,18 @@ that was **not** provisioned from a BCM image.
 Organised per [Diátaxis](https://diataxis.fr/): tutorials teach, how-to guides
 solve a specific problem, reference describes, explanation gives background.
 
+> **Looking for `sinfo` / `squeue`?** That is the other client, documented
+> separately in [../observability_server_setup/](../observability_server_setup/).
+> It reaches the Slurm controller on TCP 6817 using a munge key and matching
+> UIDs, and needs the `/cm/shared` NFS mount — none of which applies here. The
+> one technique in common is `dpkg -x` to place BCM binaries without installing
+> the package.
+
 ## Contents
 
 | Type | Document | Use when |
 |---|---|---|
-| Tutorial | [Connect cmsh from a non-BCM host](tutorials/connect-cmsh-from-non-bcm-host.md) | First time; you want the whole path start to finish |
+| Tutorial | [Connect cmsh from a non-BCM host](tutorial.md) | First time; you want the whole path start to finish |
 | How-to | [Download BCM packages for offline install](how-to/download-bcm-packages.md) | The client has no access to the BCM repo |
 | How-to | [Extract cmsh without installing it](how-to/extract-cmsh-without-installing.md) | `apt install` of the BCM debs aborts |
 | How-to | [Set up cmsh credentials](how-to/set-up-cmsh-credentials.md) | New user needs to authenticate to CMDaemon |
