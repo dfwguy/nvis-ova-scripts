@@ -103,7 +103,7 @@ sudo dpkg -x /tmp/cmsh-pkgs/cmdaemon-cmsh_11.0-164771-cm11.0-f6695c2d2a_amd64.de
 
 `dpkg -x` copies files and runs no maintainer scripts, so no daemon is started
 and no system config is rewritten. See
-[why dpkg -x](../explanation/why-dpkg-x.md) for the reasoning.
+[why dpkg -x](explanation/why-dpkg-x.md) for the reasoning.
 
 ## Step 6 — Verify the link and connect
 
@@ -145,5 +145,5 @@ Now a bare `cmsh` connects to the headnode, and `cmsh <other-host>` still works.
 A file-level install of the cmsh binary plus a properly packaged dependency
 tree, authenticating to CMDaemon over TLS on port 8081 with a copied
 administrator certificate. Next: read
-[version parity](../explanation/version-parity.md), because a BCM upgrade on the
+[version parity](explanation/version-parity.md), because a BCM upgrade on the
 headnode will break this until you repeat steps 2–5.

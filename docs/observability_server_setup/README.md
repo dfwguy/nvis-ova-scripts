@@ -6,6 +6,12 @@ managed compute node and without running `slurmd`.
 
 This documentation follows the [Diátaxis](https://diataxis.fr/) framework.
 
+> **Looking for `cmsh`?** That is the other client, documented separately in
+> [../cmsh_setup/](../cmsh_setup/). It reaches CMDaemon on TCP 8081 with an X.509 certificate and
+> shares nothing with this guide but the host and the head node — no NFS mount, no munge, no UID
+> alignment. The one technique in common is `dpkg -x` to place BCM binaries without installing the
+> package.
+
 | Document | Type | Use it when |
 |---|---|---|
 | [tutorial.md](tutorial.md) | Tutorial | You've never done this and want a guided start-to-finish run |
