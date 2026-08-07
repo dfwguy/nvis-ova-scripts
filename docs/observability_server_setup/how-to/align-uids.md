@@ -107,5 +107,7 @@ userdel -r fixuser
 
 ## Related
 
+- [add-cmods-user.md](add-cmods-user.md) — creating an account UID-aligned from the start, rather
+  than renumbering it after the fact.
 - [troubleshoot.md](troubleshoot.md) — `Invalid user for SlurmUser` and empty-`squeue` symptoms.
 - [explanation.md](../explanation.md) — how `PrivateData` filtering works.
