@@ -1,11 +1,16 @@
-# How to mount the BCM `/cm/shared` export
+# How to mount the head node's NFS exports
 
-**Goal:** make the head node's `/cm/shared` available at the identical local path, persistently.
+**Goal:** make the head node's `/cm/shared` and `/cluster` available at identical local paths,
+persistently.
+
+`/cm/shared` carries BCM's config and is read-only in practice. `/cluster` is the shared working
+directory — it is where scripts, data, and anything you produce should live, so that every node sees
+the same thing.
+
+## Mount `/cm/shared`
 
 The path must match exactly. `slurm.conf` and BCM's module files contain absolute paths under
 `/cm/shared`, so mounting it anywhere else breaks them.
-
-## Steps
 
 Create the mount point:
 
@@ -25,7 +30,7 @@ Mount it:
 mount -a
 ```
 
-## Verify
+Verify:
 
 ```
 ls /cm/shared/apps/slurm/
@@ -36,22 +41,55 @@ site *does* export binaries — in that case skip
 [install-slurm-binaries.md](install-slurm-binaries.md) and just add
 `/cm/shared/apps/slurm/current/bin` to PATH.
 
-## Shared writable space
+## Mount `/cluster`
 
-`/cm/shared` holds BCM's own config and is not a place to put your files. For scratch shared across
-nodes, sites commonly export a separate `/cluster`. It needs to be world-writable, or writes fail
-for some users and not others depending on which group the directory happens to be owned by:
+`/cluster` is a separate export from the same head node, and is the shared working directory. Mount
+it at the same path everywhere, for the same reason as `/cm/shared`: a script that refers to
+`/cluster/...` has to mean the same thing on every node.
+
+```
+mkdir -p /cluster
+```
+
+```
+echo '192.168.10.2:/cluster  /cluster  nfs  defaults,_netdev  0 0' >> /etc/fstab
+```
+
+```
+mount -a
+```
+
+Verify, and check the mode while you are there:
+
+```
+mountpoint /cluster && ls -ld /cluster
+```
+
+## Make `/cluster` writable
+
+`/cluster` must be world-writable, or writes succeed for some users and fail for others depending on
+which group the directory happens to be owned by. Set it **on the head node**, not here — NFS serves
+the mode from the server, so a `chmod` on a mounted path is either useless or changes it for
+everyone:
 
 ```
 chmod 1777 /cluster
 ```
 
-Set this on the exporting node, not the client — NFS serves the mode from the server, so a local
-`chmod` on a mounted path either does nothing or changes it for everyone.
+The leading `1` is the sticky bit, and is what makes `777` tolerable: it restricts deleting and
+renaming a file to that file's owner. Plain `0777` lets any user remove anyone else's work. `1777`
+is what `/tmp` uses, and there is no reason to use the weaker mode here.
 
-The leading `1` is the sticky bit, and is what makes `777` safe to live with: it restricts deleting
-and renaming a file to that file's owner. Plain `0777` lets any user remove anyone else's work.
-`1777` is what `/tmp` uses, and there is no reason to use the weaker mode here.
+## Work from `/cluster`
+
+Put shared scripts and data under `/cluster` rather than in a home directory or `/cm/shared`. Home
+directories are also NFS-exported, but they are per-user; `/cm/shared` belongs to BCM and its
+contents are replaced on upgrade. `/cluster` is the only one of the three that is both shared and
+yours.
+
+This matters most with `clush`: a command that reads or writes a local path runs against a different
+filesystem on each node, so results are per-node and easy to misread as cluster-wide. Referring to
+`/cluster` gives every node the same file.
 
 ## Notes
 

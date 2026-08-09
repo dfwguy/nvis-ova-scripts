@@ -16,11 +16,12 @@ find your own.
 | `slurmdbd.conf` | `/cm/shared/apps/slurm/etc/slurmdbd.conf` | Same directory |
 | Munge key (cluster) | `/cm/shared/apps/slurm/var/munge/keys/munge.key` | `ssh <hn> 'systemctl cat munge \| grep -i key'` |
 | Munge key (local) | `/etc/munge/munge.key` | munged's compiled-in default |
-| Shared writable scratch | `/cluster`, mode `1777` | Site convention; separate from `/cm/shared` |
+| Shared working directory | `192.168.10.2:/cluster` → `/cluster`, mode `1777` | Separate head node export; where work lives |
 
-`/cluster` must be world-writable or writes succeed for some users and fail for others. Use `1777`
-rather than `0777` — the sticky bit stops one user deleting another's files — and set it on the
-exporting node, since NFS serves the mode from the server.
+`/cluster` is the default place to keep scripts and data — shared across nodes, and unlike
+`/cm/shared` not owned by BCM. It must be world-writable or writes succeed for some users and fail
+for others. Use `1777` rather than `0777` — the sticky bit stops one user deleting another's files —
+and set it on the head node, since NFS serves the mode from the server.
 
 ## Accounts
 
@@ -108,7 +109,8 @@ alone routes all fully qualified `*.cluster` lookups. See
 | Package | Source | Notes |
 |---|---|---|
 | `munge`, `libmunge2` | Ubuntu `noble-updates/universe` | Normal apt install |
-| `clustershell` | Ubuntu `noble/universe` | Normal apt install; provides `clush` and `nodeset` |
+| `clustershell` | Ubuntu `noble/universe` | Normal apt install; provides `clush`, `nodeset`, `clubak` |
+| `pdsh` | Ubuntu `noble/universe` | Installed for `dshbak`; `pdsh` itself is unused |
 | `nfs-common` | Ubuntu | Only if `mount.nfs` is missing |
 | `slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb` | BCM head node | Extract with `dpkg -x`, do not apt install |
 
@@ -161,6 +163,8 @@ Assumes the `sinfo` group source from
 | `clush -g down uptime` | Run on all down nodes |
 | `clush -g drain "systemctl status slurmd"` | Run on all drained nodes |
 | `clush -b -g idle uptime` | Same, with identical output lines folded together |
+| `clush -g idle uptime \| dshbak -c` | Equivalent via `pdsh`'s formatter, as used by existing scripts |
+| `clush -g idle uptime \| clubak -b` | Equivalent via ClusterShell's own formatter |
 | `clush -w node[01-04] uptime` | Target an explicit node range, ignoring groups |
 | `clush -f 128 -g idle uptime` | Override the configured fanout for one run |
 

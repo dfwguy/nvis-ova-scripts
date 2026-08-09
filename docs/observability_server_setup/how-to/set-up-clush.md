@@ -18,9 +18,26 @@ whatever Slurm currently reports.
 
 ## Install
 
+Install `pdsh` alongside ClusterShell. It is a separate parallel-shell implementation, but the
+package also carries `dshbak`, which is what we use to fold fan-out output into per-host blocks:
+
 ```
-sudo apt install clustershell
+sudo apt install clustershell pdsh
 ```
+
+ClusterShell ships its own equivalent, `clubak`, and `clush -b` is the same thing built in:
+
+```
+clush -g idle uptime | dshbak -c
+```
+
+```
+clush -b -g idle uptime
+```
+
+Both group identical output across hosts instead of printing one interleaved line per node. Prefer
+`clush -b` for new work — it needs no pipe and knows the node names natively. `dshbak` is documented
+here because it is what the existing scripts use, and installing `pdsh` costs nothing.
 
 ## Define the `sinfo` group source
 
