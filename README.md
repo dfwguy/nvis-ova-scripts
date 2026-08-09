@@ -10,7 +10,7 @@ in either order, or alone.
 
 | Guide | Gives you | Talks to |
 |---|---|---|
-| [docs/observability_server_setup/](docs/observability_server_setup/) | `sinfo`, `squeue`, `sacct` — a read-only Slurm client | Slurm controller, TCP 6817, munge + matching UID |
+| [docs/observability_server_setup/](docs/observability_server_setup/) | `sinfo`, `squeue`, `sacct` — a read-only Slurm client, plus `clush` fan-out | Slurm controller, TCP 6817, munge + matching UID |
 | [docs/cmsh_setup/](docs/cmsh_setup/) | `cmsh` — the interactive BCM management shell | CMDaemon, TCP 8081, X.509 client certificate |
 
 ## Scripts

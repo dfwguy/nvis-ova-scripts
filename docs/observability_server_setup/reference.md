@@ -54,12 +54,15 @@ find your own.
 | `/etc/sudoers.d/slurm-path` | `secure_path` including Slurm bin | Create, `0440` |
 | `/etc/passwd`, `/etc/group` | `slurm` account; renumbered end user | Modify |
 | `/cm/local/apps/slurm/25.05/` | Extracted binaries and libraries | Create |
+| `/etc/clustershell/groups.conf.d/sinfo.conf` | `clush` group source backed by `sinfo` | Create |
+| `/etc/clustershell/groups.conf` | `default: sinfo` under `[Main]` | Modify |
 
 ## Packages
 
 | Package | Source | Notes |
 |---|---|---|
 | `munge`, `libmunge2` | Ubuntu `noble-updates/universe` | Normal apt install |
+| `clustershell` | Ubuntu `noble/universe` | Normal apt install; provides `clush` and `nodeset` |
 | `nfs-common` | Ubuntu | Only if `mount.nfs` is missing |
 | `slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb` | BCM head node | Extract with `dpkg -x`, do not apt install |
 
@@ -97,3 +100,43 @@ Full health check:
 ```
 mountpoint /cm/shared && munge -n | unmunge && sinfo | head -3 && squeue | head -3
 ```
+
+## ClusterShell quick reference
+
+Assumes the `sinfo` group source from
+[how-to/set-up-clush.md](how-to/set-up-clush.md), with `default: sinfo` set.
+
+| Command | Does |
+|---|---|
+| `nodeset -ll` | List every group and its members |
+| `nodeset -g idle` | Expand one group to a node list |
+| `nodeset -c -g idle` | Count the nodes in a group |
+| `clush -g idle hostname` | Run on all idle nodes |
+| `clush -g down uptime` | Run on all down nodes |
+| `clush -g drain "systemctl status slurmd"` | Run on all drained nodes |
+| `clush -b -g idle uptime` | Same, with identical output lines folded together |
+| `clush -w node[01-04] uptime` | Target an explicit node range, ignoring groups |
+
+## Slurm node state flags
+
+Appended by `sinfo` to the state name in `%T` / `%t` output. All are illegal in a ClusterShell group
+name and must be stripped by the `list` directive.
+
+| Flag | Meaning |
+|---|---|
+| `*` | Node not responding to the controller |
+| `~` | Node powered down |
+| `#` | Node powering up or being configured |
+| `%` | Node powering down |
+| `@` | Node has a pending reboot |
+| `+` | Node in the process of being provisioned |
+| `$` | Node in a maintenance reservation — write as `$$` in `groups.conf.d`, since `$` starts a substitution |
+
+`sinfo -t <state>` filters on the base state, so flagged nodes are still returned by `map`.
+
+## ClusterShell config locations
+
+| Directive in `groups.conf` | Directory | Files read |
+|---|---|---|
+| `confdir` | `/etc/clustershell/groups.conf.d/` | `*.conf` — INI group **source** definitions |
+| `autodir` | `/etc/clustershell/groups.d/` | `*.yaml` only — static group **membership** |

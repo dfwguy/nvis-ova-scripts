@@ -109,6 +109,63 @@ systemd units, `sudo`, and scripts with `#!/bin/sh`. Putting the config at `/etc
 Slurm's compiled-in default — makes it work everywhere with no environment at all. `SLURM_CONF`
 remains useful for overriding, but should not be the only mechanism.
 
+## Why `clush` groups come from `sinfo` rather than a file
+
+ClusterShell can hold static group membership in a YAML file, and for a fixed set of racks that is
+the simpler answer. It is the wrong answer here for the same reason the rest of this guide avoids
+local copies: this node is not managed, so anything written down by hand goes stale without warning.
+
+A group *source* inverts that. Instead of storing which nodes are idle, it stores a command that
+answers the question at the moment it is asked. `sinfo` is already the authoritative answer, already
+installed, and already authenticated to the controller — so the group source is three lines and has
+no state of its own to drift.
+
+The trade is that group resolution now inherits every failure mode of `sinfo`. If munge or the NFS
+mount breaks, `list` returns nothing, `clush -g idle` targets an empty set, and it exits cleanly
+having done nothing. Like the empty-`squeue` symptom, success and breakage look alike — which is why
+expanding with `nodeset -g` before a consequential fan-out is worth the extra keystroke.
+
+There is also a race with no clean fix: `map` samples state once per invocation, so a node that
+changes state mid-run is targeted according to what it *was*. For read-only queries that does not
+matter. For anything that writes, resolve the list first and pass it explicitly.
+
+The deeper cost of deriving groups from a command is that you inherit the command's output format,
+including parts of it you did not ask for. `sinfo` decorates a state name with a flag character —
+`idle*` for an unreachable node — because it is designed for a human reading a terminal, where the
+flag is useful and unambiguous. ClusterShell reads the same string as an identifier, and identifiers
+do not permit `*`. Nothing is wrong on either side; the two tools simply disagree about what the
+string is *for*.
+
+That disagreement produces a disproportionate failure. `nodeset -ll` does not skip the malformed
+name and carry on — it aborts, so a single unreachable node makes the entire group listing
+unavailable. Normalising in `list` is what reconciles the two views, and it is worth understanding as
+the general shape of the problem rather than a one-off: any command-backed source needs its output
+sanitised into the namespace the consumer expects, and the failures show up only when the underlying
+command starts emitting a case you did not see on the day you wrote the config.
+
+## Why the two ClusterShell config directories are not interchangeable
+
+ClusterShell reads group configuration from two directories that look similar and are not:
+
+- **`confdir`** (`groups.conf.d/`) holds `*.conf` files in INI format, each defining a *source* — a
+  named set of `list`/`map`/`all` commands. This is where `[sinfo]` belongs.
+- **`autodir`** (`groups.d/`) holds `*.yaml` files listing *membership* directly — group names mapped
+  to node sets, no commands involved.
+
+The distinction is definition-by-command versus definition-by-data, and the file extension is how
+ClusterShell tells them apart. A `.conf` dropped in `groups.d/` matches neither the YAML loader's
+glob nor the INI parser's directory, so it is not read and no warning is emitted. The only visible
+consequence appears later, when `default: sinfo` in `groups.conf` refers to a source that was never
+loaded:
+
+```
+clush: Group resolver error: Default group source not found: "sinfo"
+```
+
+The error names the symptom, not the cause — it says the source is missing, not that the file
+defining it was ignored. Reading it as "my config is wrong" rather than "my config is in the wrong
+directory" is the natural mistake, and it costs time.
+
 ## What this node is not
 
 Being explicit, since the distinction matters when someone else inherits the host:

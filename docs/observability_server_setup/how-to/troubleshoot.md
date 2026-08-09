@@ -85,6 +85,50 @@ grep -i PrivateData /etc/slurm/slurm.conf
 If `jobs` is listed, compare your UID with the cluster's. `squeue --all` will **not** override
 `PrivateData` — the UID must actually match.
 
+## `nodeset: Illegal group character: "*"`
+
+`nodeset -ll` aborts and lists nothing.
+
+The `sinfo` group source is returning state names with Slurm's flag characters attached — `idle*` for
+an unreachable node, `idle~` for a powered-down one. Those characters are not legal in a ClusterShell
+group name, and the error stops the whole listing, not just the offending group.
+
+Check what `list` is actually producing:
+
+```
+sinfo -h -o "%T" | sort -u
+```
+
+Strip the flags in the `list` directive — see
+[set-up-clush.md](set-up-clush.md#define-the-sinfo-group-source). The nodes themselves are not
+affected; only the group name is.
+
+## `clush: Group resolver error: Default group source not found: "sinfo"`
+
+`default: sinfo` is set in `groups.conf`, but no source by that name was loaded.
+
+Almost always the source file is in the wrong directory. It belongs in
+`/etc/clustershell/groups.conf.d/` as a `*.conf` file. `/etc/clustershell/groups.d/` is a different
+mechanism and reads only `*.yaml`, ignoring anything else without warning:
+
+```
+ls /etc/clustershell/groups.conf.d/ /etc/clustershell/groups.d/
+```
+
+## `clush -g <state>` runs but targets nothing
+
+The command exits cleanly, having done nothing.
+
+Groups are resolved by running `sinfo`, so if `sinfo` is broken every group is empty and `clush`
+reports no error. Test the underlying command before debugging ClusterShell:
+
+```
+sinfo -h -o "%N" -t idle
+```
+
+If that is empty too, the problem is Slurm, not `clush` — work through the sections above. If it
+returns nodes but `nodeset -g idle` does not, the group source is misconfigured.
+
 ## Getting more detail
 
 Raise Slurm's client verbosity:

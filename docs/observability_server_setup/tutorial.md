@@ -289,5 +289,7 @@ su - nvis -c 'sinfo | head -3' && sudo sinfo | head -3 && env -i /cm/local/apps/
 - [explanation.md](explanation.md) — why BCM splits `/cm/local` from `/cm/shared`, and why the
   munge key gets copied rather than read in place.
 - [how-to/troubleshoot.md](how-to/troubleshoot.md) — mapping each error message to its cause.
+- [how-to/set-up-clush.md](how-to/set-up-clush.md) — now that `sinfo` works, use it to drive
+  `clush` fan-out across nodes grouped by Slurm state.
 - Consider joining the node to BCM's LDAP/SSSD instead of hand-matching UIDs, if more than one or
   two users will need this host. Manual UID matching does not scale and drifts silently.
