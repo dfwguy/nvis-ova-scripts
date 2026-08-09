@@ -32,7 +32,46 @@ find your own.
 | `SlurmctldHost` | `nscale-hn1` | `slurm.conf` |
 | `SlurmctldPort` | `6817` | `slurm.conf` |
 | `AccountingStorageHost` | `master` (BCM alias for head node) | `slurm.conf` |
-| Head node IP | `192.168.10.2` | Site network |
+| Head node IP (management) | `192.168.10.2` | Site network |
+| Head node IP (bonded) | `10.40.112.2` | Site network |
+
+Both head node addresses answer DNS. The bonded interface measured ~1 ms against ~22 ms on the
+management interface at this site, so it is the one configured as the resolver — time your own with
+`dig @<ip> google.com`.
+
+## DNS
+
+| Item | Value (this site) | How to discover |
+|---|---|---|
+| Upstream resolver | `10.40.112.2` | Head node bonded interface |
+| Routing domain | `~cluster` | Covers every BCM `<network>.cluster` domain |
+| Search domains | `dgxnet01.cluster` – `dgxnet28.cluster`, `eth.cluster` | `cmsh -c "network; list"` |
+| Cache | `Cache=yes` | Drop-in setting |
+
+BCM names each network's domain as `<network>.cluster`. The full set at this site:
+
+```
+dgxnet01.cluster dgxnet02.cluster dgxnet03.cluster dgxnet04.cluster dgxnet05.cluster
+dgxnet06.cluster dgxnet07.cluster dgxnet08.cluster dgxnet09.cluster dgxnet10.cluster
+dgxnet11.cluster dgxnet12.cluster dgxnet13.cluster dgxnet14.cluster dgxnet15.cluster
+dgxnet16.cluster dgxnet17.cluster dgxnet18.cluster dgxnet19.cluster dgxnet20.cluster
+dgxnet21.cluster dgxnet22.cluster dgxnet23.cluster dgxnet24.cluster dgxnet25.cluster
+dgxnet26.cluster dgxnet27.cluster dgxnet28.cluster eth.cluster
+```
+
+Listing these as search suffixes is only needed for hostnames typed without a domain; `~cluster`
+alone routes all fully qualified `*.cluster` lookups. See
+[how-to/set-up-dns.md](how-to/set-up-dns.md).
+
+| `resolved` command | Does |
+|---|---|
+| `resolvectl status` | Global and per-link resolver config — the first thing to check |
+| `resolvectl query <name>` | Resolve one name, showing which route answered |
+| `resolvectl statistics` | Cache hit/miss counters |
+| `resolvectl flush-caches` | Drop cached answers after a BCM change |
+
+**Limitation:** `systemd-resolved` has no option to suppress `AAAA` queries. `dnsmasq` with
+`no-aaaa` is the alternative if that becomes necessary.
 
 ## Relevant config settings
 
@@ -56,6 +95,7 @@ find your own.
 | `/cm/local/apps/slurm/25.05/` | Extracted binaries and libraries | Create |
 | `/etc/clustershell/groups.conf.d/sinfo.conf` | `clush` group source backed by `sinfo` | Create |
 | `/etc/clustershell/groups.conf` | `default: sinfo` under `[Main]` | Modify |
+| `/etc/systemd/resolved.conf.d/bcm.conf` | Forward cluster DNS to the head node | Create |
 
 ## Packages
 

@@ -10,6 +10,8 @@ whatever Slurm currently reports.
 ## Prerequisites
 
 - `sinfo` already works on this host — see [../tutorial.md](../tutorial.md).
+- Node names resolve — see [set-up-dns.md](set-up-dns.md). `sinfo` returns short names that must
+  resolve before SSH can connect.
 - Passwordless SSH from this host to the nodes you intend to target. `clush` is only a fan-out
   wrapper around `ssh`; it adds no authentication of its own.
 
