@@ -16,12 +16,14 @@ find your own.
 | `slurmdbd.conf` | `/cm/shared/apps/slurm/etc/slurmdbd.conf` | Same directory |
 | Munge key (cluster) | `/cm/shared/apps/slurm/var/munge/keys/munge.key` | `ssh <hn> 'systemctl cat munge \| grep -i key'` |
 | Munge key (local) | `/etc/munge/munge.key` | munged's compiled-in default |
-| Shared working directory | `192.168.10.2:/cluster` → `/cluster`, mode `1777` | Separate head node export; where work lives |
+| Shared working directory | `/cluster`, mode `1777` | Exported by the slogin or observability node |
 
 `/cluster` is the default place to keep scripts and data — shared across nodes, and unlike
-`/cm/shared` not owned by BCM. It must be world-writable or writes succeed for some users and fail
-for others. Use `1777` rather than `0777` — the sticky bit stops one user deleting another's files —
-and set it on the head node, since NFS serves the mode from the server.
+`/cm/shared` not owned by BCM. It is exported by the slogin or observability node, not the head
+node: the head node serves only what BCM provisions. It must be world-writable or writes succeed for
+some users and fail for others. Use `1777` rather than `0777` — the sticky bit stops one user
+deleting another's files — and set it on the exporting host, since NFS serves the mode from the
+server.
 
 ## Accounts
 
