@@ -30,6 +30,7 @@ This documentation follows the [Diátaxis](https://diataxis.fr/) framework.
 | [add-cmods-user.md](how-to/add-cmods-user.md) | Provision the `cmods` admin account on a new node, UID-aligned |
 | [persist-environment.md](how-to/persist-environment.md) | Make `sinfo` work after reboot, under `sudo`, and in cron |
 | [set-up-dns.md](how-to/set-up-dns.md) | Resolve cluster hostnames via the head node's DNS |
+| [distribute-ssh-keys.md](how-to/distribute-ssh-keys.md) | Give users passwordless SSH to managed nodes via NFS home |
 | [set-up-clush.md](how-to/set-up-clush.md) | Fan out commands across nodes, grouped by Slurm state |
 | [troubleshoot.md](how-to/troubleshoot.md) | Diagnose a failing `sinfo` / `squeue` |
 
