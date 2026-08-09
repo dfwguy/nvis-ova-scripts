@@ -95,6 +95,7 @@ alone routes all fully qualified `*.cluster` lookups. See
 | `/cm/local/apps/slurm/25.05/` | Extracted binaries and libraries | Create |
 | `/etc/clustershell/groups.conf.d/sinfo.conf` | `clush` group source backed by `sinfo` | Create |
 | `/etc/clustershell/groups.conf` | `default: sinfo` under `[Main]` | Modify |
+| `/etc/clustershell/clush.conf` | `fanout: 512` under `[Main]` | Modify |
 | `/etc/systemd/resolved.conf.d/bcm.conf` | Forward cluster DNS to the head node | Create |
 
 ## Packages
@@ -156,6 +157,16 @@ Assumes the `sinfo` group source from
 | `clush -g drain "systemctl status slurmd"` | Run on all drained nodes |
 | `clush -b -g idle uptime` | Same, with identical output lines folded together |
 | `clush -w node[01-04] uptime` | Target an explicit node range, ignoring groups |
+| `clush -f 128 -g idle uptime` | Override the configured fanout for one run |
+
+| ClusterShell setting | File | This site | Default |
+|---|---|---|---|
+| `default` | `groups.conf` `[Main]` | `sinfo` | `local` |
+| `fanout` | `clush.conf` `[Main]` | `512` | `64` |
+
+`fanout` is the number of concurrent SSH connections. Each consumes file descriptors, so `ulimit -n`
+bounds how high it can usefully go. Lower it behind a bastion or on a small host; raise it on a
+well-resourced head node driving a large cluster.
 
 ## Slurm node state flags
 

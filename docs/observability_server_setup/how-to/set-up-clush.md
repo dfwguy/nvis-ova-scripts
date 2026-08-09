@@ -64,6 +64,36 @@ Without this, `clush -g idle` looks in whatever source is currently default (`lo
 install) and reports the group as unknown. You can skip the change and qualify the group explicitly
 instead — `clush -g sinfo:idle` — which is worth doing if the host has other group sources in use.
 
+## Raise the fanout
+
+`fanout` is how many SSH connections `clush` keeps open at once. The default of 64 means a 500-node
+group runs in eight sequential waves, so a one-second command takes eight seconds. In
+`/etc/clustershell/clush.conf`, under `[Main]`:
+
+```ini
+fanout: 512
+```
+
+512 is the normal setting here — high enough that a full-cluster fan-out is effectively one wave,
+low enough to stay within ordinary resource limits. It is a starting point, not a fixed value:
+
+- **Lower it** if the host is small, if the run passes through a bastion or gateway that concentrates
+  every connection, or if you hit the local open-file limit. Each connection costs file descriptors,
+  so `ulimit -n` is the ceiling that matters — check it with `ulimit -n` and raise it before raising
+  `fanout` past it.
+- **Raise it** on a well-resourced head node driving a large cluster, where the wave count is the
+  thing costing you time and the connections are direct.
+
+Override per invocation without editing the file:
+
+```
+clush -f 128 -g idle uptime
+```
+
+Sizing is empirical. Time the same command at a few values against a large group and watch where the
+gain flattens — that is your ceiling, and it is a property of this host and this network rather than
+of ClusterShell.
+
 ## Verify
 
 List the groups, then expand one, before running anything remotely:
