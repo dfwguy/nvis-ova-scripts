@@ -23,7 +23,7 @@ This documentation follows the [Diátaxis](https://diataxis.fr/) framework.
 
 | Guide | Goal |
 |---|---|
-| [mount-cm-shared.md](how-to/mount-cm-shared.md) | Persistently mount the BCM `/cm/shared` NFS export |
+| [mount-cm-shared.md](how-to/mount-cm-shared.md) | Mount BCM's `/cm/shared`, and set up `/cluster` as shared working space |
 | [set-up-munge.md](how-to/set-up-munge.md) | Install munge and install the cluster's key locally |
 | [install-slurm-binaries.md](how-to/install-slurm-binaries.md) | Get Slurm client binaries on without BCM repo access |
 | [align-uids.md](how-to/align-uids.md) | Match local UIDs to cluster UIDs so `squeue` returns data |

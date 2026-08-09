@@ -1,85 +1,97 @@
-# How to give users SSH access to managed nodes
+# How to set up SSH access to managed nodes
 
-**Goal:** passwordless SSH from the head node to every managed node, which is what `clush` needs to
-fan out.
+**Goal:** passwordless SSH from this host to every managed node, which is what `clush` needs to fan
+out.
 
-Home directories are exported over NFS from the head node, so a key written to `~/.ssh` there appears
-on every managed node automatically. One keypair per user covers the whole cluster; there is nothing
-to copy per node.
+Home directories are exported over NFS from the head node, so a public key appended to
+`~/.ssh/authorized_keys` there appears on every managed node at once. One key authorises the whole
+cluster; there is nothing to copy per node.
 
-## Generate a keypair
+## Generate a keypair on this host
 
-As the target user, on the head node:
-
-```
-ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
-```
-
-## Authorise it
-
-Because home is shared, the user's own public key in their own `authorized_keys` grants access to
-every node. Print the append command first so you can read it before running it:
+Generate the key where it will be used, as the user who will use it. The private key then never
+crosses the network and is never owned by anyone but its user:
 
 ```
-echo "echo '$(cat ~/.ssh/id_ed25519.pub)' >> ~/.ssh/authorized_keys"
+ssh-keygen -t ed25519 -f ~/.ssh/id_bcm -N ""
 ```
 
-Run that output, then fix permissions — `sshd` ignores the file if it is group- or world-writable:
+Do not generate it on the head node. A key made there and read back over NFS has travelled the
+network for no reason, and one made by root under a user's home is left root-owned — unreadable by
+that user, failing silently at login.
+
+## Authorise it on the cluster
+
+Append the public key to the user's `authorized_keys` in the NFS-exported home. `ssh-copy-id` does
+this and fixes permissions itself:
 
 ```
-chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
+ssh-copy-id -i ~/.ssh/id_bcm.pub nvis@192.168.10.2
 ```
 
-## Do it for several users at once
-
-Run as root on the head node. The `chown` matters: files created by root under a user's home stay
-root-owned, and a private key the user cannot read fails silently at login. The existence check
-matters too — without it `ssh-keygen` stops to ask about overwriting and the loop hangs:
+If password login to the head node is disabled, add the key to `~/.ssh/authorized_keys` there by
+whatever route you do have, then confirm permissions — `sshd` ignores the file if it is group- or
+world-writable:
 
 ```
-for u in user1 user2 user3; do
-  install -d -o "$u" -g "$u" -m 700 "/home/$u/.ssh"
-  [ -f "/home/$u/.ssh/id_ed25519" ] || \
-    sudo -u "$u" ssh-keygen -t ed25519 -f "/home/$u/.ssh/id_ed25519" -N ""
-  sudo -u "$u" sh -c "cat /home/$u/.ssh/id_ed25519.pub >> /home/$u/.ssh/authorized_keys"
-  chmod 600 "/home/$u/.ssh/authorized_keys"
-done
+ssh nvis@192.168.10.2 'chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys'
 ```
 
-Running each step as the user via `sudo -u` gets the ownership right by construction rather than
-repairing it afterwards.
+That single append is what reaches every managed node.
 
-## Skip host key prompts
+## Configure the client
 
-A first connection to an unknown node prompts for confirmation, which blocks a `clush` fan-out.
-Nodes are also reprovisioned regularly and regenerate their host keys, so tracking them is churn.
-Turn it off for the cluster's nodes in `~/.ssh/config`:
+In `~/.ssh/config` on this host:
 
 ```
+Host bcm-hn bcm
+  HostName 192.168.10.2
+  User nvis
+  IdentityFile ~/.ssh/id_bcm
+  IdentitiesOnly yes
+  StrictHostKeyChecking accept-new
+
 Host ink50-*
   StrictHostKeyChecking no
   UserKnownHostsFile /dev/null
   LogLevel ERROR
 ```
 
+The two blocks deliberately differ, because the two kinds of host differ.
+
+**The head node** has a stable identity worth verifying. `accept-new` records its key on first
+connect without prompting, then keeps checking it — so a *changed* key still fails loudly, which is
+the case that matters. `IdentitiesOnly yes` stops SSH offering every key the agent holds, which can
+exhaust `MaxAuthTries` and fail before the right key is tried.
+
+**Managed nodes** are reprovisioned and regenerate their host keys under the same name. To
+`accept-new` that is indistinguishable from an impersonation attempt, so it would refuse to connect
+and need a manual `known_hosts` edit after every reprovision. Discarding the record instead keeps
+fan-out working:
+
 | Option | Effect |
 |---|---|
 | `StrictHostKeyChecking no` | Accepts any host key without prompting |
 | `UserKnownHostsFile /dev/null` | Records nothing, so a reprovisioned node never conflicts |
-| `LogLevel ERROR` | Suppresses the "Permanently added" notices |
+| `LogLevel ERROR` | Suppresses the "Permanently added" notices that would otherwise flood a fan-out |
 
-Keep the `Host` pattern narrow enough that it matches cluster nodes only — a bare `Host *` would
-disable host key checking for every SSH connection from this account, including off-cluster ones.
+This is a real trade: nothing detects a node being impersonated on that pattern. It is defensible on
+a private management network and not elsewhere. Keep the `Host` pattern narrow — a bare `Host *`
+would disable checking for every SSH connection from this account.
 
 ## Verify
 
-Confirm the key reached a managed node — the hashes must match:
+Confirm the key reached a managed node by comparing the file it arrived in:
 
 ```
-md5sum ~/.ssh/authorized_keys && ssh <managed-node> md5sum ~/.ssh/authorized_keys
+ssh bcm md5sum .ssh/authorized_keys
 ```
 
-Then the fan-out itself:
+```
+ssh <managed-node> md5sum .ssh/authorized_keys
+```
+
+The hashes must match. Then the fan-out itself:
 
 ```
 clush -b -g idle hostname
