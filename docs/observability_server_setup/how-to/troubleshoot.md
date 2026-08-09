@@ -85,6 +85,87 @@ grep -i PrivateData /etc/slurm/slurm.conf
 If `jobs` is listed, compare your UID with the cluster's. `squeue --all` will **not** override
 `PrivateData` — the UID must actually match.
 
+## Cluster hostnames do not resolve
+
+`clush` fails with SSH name-resolution errors, or `resolvectl query <node>` returns
+`Name or service not known`.
+
+Check what the resolver is actually configured with, per link and globally:
+
+```
+resolvectl status
+```
+
+Then work down these in order:
+
+| Symptom in `resolvectl status` | Cause | Fix |
+|---|---|---|
+| No `DNS Servers` line under Global | Drop-in not applied | `systemctl restart systemd-resolved`; check the file parses |
+| A link has its own `DNS Servers` | DHCP or netplan is supplying a nameserver, which is preferred over the global one | Configure DNS on that interface in netplan, or rely on the `~cluster` routing domain, which applies regardless |
+| Global server present, FQDN resolves, bare name does not | The name's domain is routed by `~cluster` but is not a search suffix | Add that domain plainly to `Domains=` |
+| Nothing resolves, including external names | Wrong or unreachable server address | `dig @<ip> google.com` against each head node interface |
+
+Test the head node directly, bypassing `resolved` entirely — if this works and `resolvectl` does not,
+the problem is local configuration, not the server:
+
+```
+dig @10.40.112.2 ink50-dh01-d22-36.dgxnet01.cluster
+```
+
+## A renamed or re-addressed node still resolves to the old value
+
+`Cache=yes` is doing its job; the record has not expired yet.
+
+```
+resolvectl flush-caches
+```
+
+If it comes back stale, the head node itself is serving the old record.
+
+## `nodeset: Illegal group character: "*"`
+
+`nodeset -ll` aborts and lists nothing.
+
+The `sinfo` group source is returning state names with Slurm's flag characters attached — `idle*` for
+an unreachable node, `idle~` for a powered-down one. Those characters are not legal in a ClusterShell
+group name, and the error stops the whole listing, not just the offending group.
+
+Check what `list` is actually producing:
+
+```
+sinfo -h -o "%T" | sort -u
+```
+
+Strip the flags in the `list` directive — see
+[set-up-clush.md](set-up-clush.md#define-the-sinfo-group-source). The nodes themselves are not
+affected; only the group name is.
+
+## `clush: Group resolver error: Default group source not found: "sinfo"`
+
+`default: sinfo` is set in `groups.conf`, but no source by that name was loaded.
+
+Almost always the source file is in the wrong directory. It belongs in
+`/etc/clustershell/groups.conf.d/` as a `*.conf` file. `/etc/clustershell/groups.d/` is a different
+mechanism and reads only `*.yaml`, ignoring anything else without warning:
+
+```
+ls /etc/clustershell/groups.conf.d/ /etc/clustershell/groups.d/
+```
+
+## `clush -g <state>` runs but targets nothing
+
+The command exits cleanly, having done nothing.
+
+Groups are resolved by running `sinfo`, so if `sinfo` is broken every group is empty and `clush`
+reports no error. Test the underlying command before debugging ClusterShell:
+
+```
+sinfo -h -o "%N" -t idle
+```
+
+If that is empty too, the problem is Slurm, not `clush` — work through the sections above. If it
+returns nodes but `nodeset -g idle` does not, the group source is misconfigured.
+
 ## Getting more detail
 
 Raise Slurm's client verbosity:

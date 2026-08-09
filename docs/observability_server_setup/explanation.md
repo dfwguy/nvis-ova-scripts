@@ -109,6 +109,112 @@ systemd units, `sudo`, and scripts with `#!/bin/sh`. Putting the config at `/etc
 Slurm's compiled-in default — makes it work everywhere with no environment at all. `SLURM_CONF`
 remains useful for overriding, but should not be the only mechanism.
 
+## Why DNS is configured rather than replaced
+
+Ubuntu 24.04 resolves names through `systemd-resolved`, and the reflex on a server is to remove it —
+point `/etc/resolv.conf` at the head node and be done. That works until the next reboot, because
+`/etc/resolv.conf` is a symlink into `/run` that `resolved` regenerates. Fighting the stub resolver
+means fighting NetworkManager and netplan too, both of which expect to own name resolution.
+
+A drop-in under `/etc/systemd/resolved.conf.d/` takes the opposite approach: leave the mechanism
+alone and supply it with the site's answer. It survives package upgrades, which edits to
+`/etc/systemd/resolved.conf` do not, and it keeps the local cache and the per-link routing logic that
+a hand-written `resolv.conf` throws away.
+
+The cache is not incidental. A `clush` fan-out resolves every target name at once, and BCM serves
+cluster records with short TTLs. Answering repeats locally keeps a broadcast across hundreds of nodes
+from turning into hundreds of simultaneous queries at the head node — which is already the busiest
+machine in the cluster and is also serving Slurm RPCs, NFS, and CMDaemon to the same nodes.
+
+## Why routing domains beat a long search list
+
+`Domains=` conflates two different jobs, and the difference is what makes the config either stable or
+a maintenance chore.
+
+A **search domain** is a suffix appended to a bare name. `Domains=dgxnet01.cluster` means
+`ink50-dh01-d22-36` is retried as `ink50-dh01-d22-36.dgxnet01.cluster`. Each entry is tried in order,
+so 29 entries means a name that does not exist costs up to 29 sequential queries before failing.
+
+A **routing domain**, written with a leading `~`, appends nothing. It answers a different question:
+which resolver should handle names under this domain. `~cluster` sends every `*.cluster` lookup to
+the head node and covers every network BCM has now or will provision later.
+
+The site's original configuration listed all 29 domains as search suffixes, which is why it worked —
+listing a domain plainly makes it a route *and* a suffix. But it encodes the cluster's current
+network layout in a file on an unmanaged host, which is exactly the drift this guide keeps running
+into: BCM adds `dgxnet29`, nothing here notices, and the failure is a name that will not resolve for
+reasons unrelated to anything that changed locally. `~cluster` plus the handful of networks whose
+nodes you address by short name has the same effect with nothing to keep in sync.
+
+## Why the head node still needs an `/etc/hosts` entry
+
+With cluster DNS working it is tempting to delete the `/etc/hosts` lines for `nscale-hn1` and
+`master`. Don't. The resolver those names point at *is* the head node, so resolving the head node by
+DNS would make every Slurm command depend on the head node already being reachable by name — a
+circular dependency that is invisible while things work and total when they do not.
+
+This is the same reasoning as copying the munge key locally instead of reading it from NFS: the
+bootstrap path for reaching a service must not run through that service. `/etc/hosts` is consulted
+before DNS, costs nothing, and means a DNS outage degrades cluster-wide name resolution without
+taking `sinfo` with it.
+
+## Why `clush` groups come from `sinfo` rather than a file
+
+ClusterShell can hold static group membership in a YAML file, and for a fixed set of racks that is
+the simpler answer. It is the wrong answer here for the same reason the rest of this guide avoids
+local copies: this node is not managed, so anything written down by hand goes stale without warning.
+
+A group *source* inverts that. Instead of storing which nodes are idle, it stores a command that
+answers the question at the moment it is asked. `sinfo` is already the authoritative answer, already
+installed, and already authenticated to the controller — so the group source is three lines and has
+no state of its own to drift.
+
+The trade is that group resolution now inherits every failure mode of `sinfo`. If munge or the NFS
+mount breaks, `list` returns nothing, `clush -g idle` targets an empty set, and it exits cleanly
+having done nothing. Like the empty-`squeue` symptom, success and breakage look alike — which is why
+expanding with `nodeset -g` before a consequential fan-out is worth the extra keystroke.
+
+There is also a race with no clean fix: `map` samples state once per invocation, so a node that
+changes state mid-run is targeted according to what it *was*. For read-only queries that does not
+matter. For anything that writes, resolve the list first and pass it explicitly.
+
+The deeper cost of deriving groups from a command is that you inherit the command's output format,
+including parts of it you did not ask for. `sinfo` decorates a state name with a flag character —
+`idle*` for an unreachable node — because it is designed for a human reading a terminal, where the
+flag is useful and unambiguous. ClusterShell reads the same string as an identifier, and identifiers
+do not permit `*`. Nothing is wrong on either side; the two tools simply disagree about what the
+string is *for*.
+
+That disagreement produces a disproportionate failure. `nodeset -ll` does not skip the malformed
+name and carry on — it aborts, so a single unreachable node makes the entire group listing
+unavailable. Normalising in `list` is what reconciles the two views, and it is worth understanding as
+the general shape of the problem rather than a one-off: any command-backed source needs its output
+sanitised into the namespace the consumer expects, and the failures show up only when the underlying
+command starts emitting a case you did not see on the day you wrote the config.
+
+## Why the two ClusterShell config directories are not interchangeable
+
+ClusterShell reads group configuration from two directories that look similar and are not:
+
+- **`confdir`** (`groups.conf.d/`) holds `*.conf` files in INI format, each defining a *source* — a
+  named set of `list`/`map`/`all` commands. This is where `[sinfo]` belongs.
+- **`autodir`** (`groups.d/`) holds `*.yaml` files listing *membership* directly — group names mapped
+  to node sets, no commands involved.
+
+The distinction is definition-by-command versus definition-by-data, and the file extension is how
+ClusterShell tells them apart. A `.conf` dropped in `groups.d/` matches neither the YAML loader's
+glob nor the INI parser's directory, so it is not read and no warning is emitted. The only visible
+consequence appears later, when `default: sinfo` in `groups.conf` refers to a source that was never
+loaded:
+
+```
+clush: Group resolver error: Default group source not found: "sinfo"
+```
+
+The error names the symptom, not the cause — it says the source is missing, not that the file
+defining it was ignored. Reading it as "my config is wrong" rather than "my config is in the wrong
+directory" is the natural mistake, and it costs time.
+
 ## What this node is not
 
 Being explicit, since the distinction matters when someone else inherits the host:
