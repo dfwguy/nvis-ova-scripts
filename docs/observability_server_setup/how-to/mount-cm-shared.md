@@ -36,6 +36,23 @@ site *does* export binaries — in that case skip
 [install-slurm-binaries.md](install-slurm-binaries.md) and just add
 `/cm/shared/apps/slurm/current/bin` to PATH.
 
+## Shared writable space
+
+`/cm/shared` holds BCM's own config and is not a place to put your files. For scratch shared across
+nodes, sites commonly export a separate `/cluster`. It needs to be world-writable, or writes fail
+for some users and not others depending on which group the directory happens to be owned by:
+
+```
+chmod 1777 /cluster
+```
+
+Set this on the exporting node, not the client — NFS serves the mode from the server, so a local
+`chmod` on a mounted path either does nothing or changes it for everyone.
+
+The leading `1` is the sticky bit, and is what makes `777` safe to live with: it restricts deleting
+and renaming a file to that file's owner. Plain `0777` lets any user remove anyone else's work.
+`1777` is what `/tmp` uses, and there is no reason to use the weaker mode here.
+
 ## Notes
 
 - `_netdev` tells systemd this mount depends on the network, preventing a boot-time hang or a

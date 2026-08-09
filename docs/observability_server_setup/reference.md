@@ -16,6 +16,11 @@ find your own.
 | `slurmdbd.conf` | `/cm/shared/apps/slurm/etc/slurmdbd.conf` | Same directory |
 | Munge key (cluster) | `/cm/shared/apps/slurm/var/munge/keys/munge.key` | `ssh <hn> 'systemctl cat munge \| grep -i key'` |
 | Munge key (local) | `/etc/munge/munge.key` | munged's compiled-in default |
+| Shared writable scratch | `/cluster`, mode `1777` | Site convention; separate from `/cm/shared` |
+
+`/cluster` must be world-writable or writes succeed for some users and fail for others. Use `1777`
+rather than `0777` — the sticky bit stops one user deleting another's files — and set it on the
+exporting node, since NFS serves the mode from the server.
 
 ## Accounts
 
