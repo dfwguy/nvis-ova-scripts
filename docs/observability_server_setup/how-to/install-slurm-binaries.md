@@ -66,6 +66,7 @@ apt-get install -y libhwloc15 libpmix2 libucx0
 
 | Consequence | Detail |
 |---|---|
+| Query tools only | `srun` and `sbatch` still abort — they load SPANK plugins that ship in separate packages. See [enable-job-submission.md](enable-job-submission.md) |
 | No dpkg record | `apt list --installed` won't show it; nothing tracks or removes these files |
 | No upgrade path | A cluster Slurm upgrade requires repeating this by hand with a new `.deb` |
 | Version skew risk | Client and controller must stay within Slurm's supported version window |

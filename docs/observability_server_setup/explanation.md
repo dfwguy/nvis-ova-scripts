@@ -49,11 +49,75 @@ never uses. `ldd` reveals the truth: `sinfo` links only `libslurmfull.so`, glibc
 Extracting with `dpkg -x` gets the files while skipping metadata that describes a use case you do not
 have.
 
+The boundary is exactly the query tools, though, and it is worth stating precisely: `sinfo`,
+`squeue`, and `sacct` need none of it; `srun` and `sbatch` need most of it. The moment `srun` builds
+an MPI context it loads `mpi_pmix_v4.so`, which wants hwloc, and PMIx, which wants libevent. Those
+are the `cm-pmix4-local` and `cm-hwloc2-local` dependencies the extraction skipped, arriving late and
+one at a time. "Safe to skip" is a statement about a read-only client, not about the package.
+
 The cost is real, though. There is no dpkg record, so nothing tracks the files, nothing upgrades
 them, and nothing warns you when the cluster moves to a new Slurm version. Slurm supports clients
 within roughly two minor versions of the controller; beyond that, RPC changes break things. That
 maintenance burden is the price of avoiding repository access, and it is why LDAP/SSSD plus proper BCM
 provisioning is the better answer for anything long-lived.
+
+## Why the query tools worked and the submission tools did not
+
+The `ldd` argument above covers `sinfo` and `squeue` completely, because everything they need is
+something the linker can see. `srun` and `sbatch` have a requirement `ldd` cannot show: a list of
+SPANK plugins, read from `plugstack.conf.d` at startup and loaded with `dlopen`. A missing entry
+there is invisible to every check you would run on the binary, and fatal the first time you run the
+command.
+
+What makes it land specifically on a hand-built node is where the two halves live. The list is
+configuration, so BCM keeps it on `/cm/shared`, and mounting the export hands it to you
+automatically. The plugins are binaries, so they sit under `/cm/local` and arrive only by
+provisioning. That is the same split as everything else here, with the sign flipped: usually the NFS
+mount supplies something you would otherwise have to fetch, and here it supplies an obligation you
+cannot meet. A node with no `/cm/shared` mount would find no plugin list and load nothing.
+
+The extraction misses the plugin for a second, compounding reason. Pyxis is packaged separately from
+Slurm and installed on its own schedule — at this site the `.so` is dated two months after the Slurm
+tree around it. Even a perfect extraction of the Slurm `.deb` could not have contained it, which is
+why this surfaces as a surprise rather than as an obvious omission at install time.
+
+Slurm's refusal is correct, and worth not fighting. A plugin marked `required` that cannot be loaded
+is fatal because the alternative is silently launching jobs without the isolation, accounting, or
+credential handling the site expects it to enforce. Softening that is a cluster-wide decision, and
+`plugstack.conf.d` living on the shared filesystem is precisely what makes it one: there is no way to
+relax it for this node without also detaching from the shared `slurm.conf` and taking on a private
+copy that will drift.
+
+So the fix is to satisfy the requirement rather than remove it — copy the plugin in, as with the
+munge key, and inherit the same weakness. Both are unmanaged local copies of cluster state, and both
+break silently when the cluster's version moves. That is the recurring price of this whole approach,
+and it shows up once more here.
+
+## Why each fix reveals another failure
+
+Getting submission working takes four rounds, and the reason is that the dependencies are discovered
+by *running* rather than declared anywhere readable. Each layer is loaded only once the layer above
+succeeds, so the second problem is unobservable until the first is solved. There is no way to see the
+whole list up front, which is why the work feels like whack-a-mole rather than a checklist.
+
+Two mechanisms hide the chain. The first is `dlopen`: `ldd` reports what the linker recorded, and
+Slurm's pmix plugin loads PMIx by name at runtime, so PMIx does not appear in the plugin's
+dependencies at all. A clean `ldd` proves nothing about whether the plugin will load. The second is
+RUNPATH — `mpi_pmix_v4.so` carries `/cm/local/apps/hwloc2/2.8.0/lib`, which does not exist on this
+node, so the loader silently falls through to the system path and finds Ubuntu's hwloc. That
+fall-through is why hwloc could be solved with an apt install while PMIx could not: a missing RUNPATH
+directory degrades to the default search, but a library nothing searches for is simply absent.
+
+The error messages compound it by being nearly identical. "cannot open shared object file" means the
+loader could not find something; "can not load PMIx library" means the plugin loaded, ran its
+`init()`, and failed one level deeper. Both read as "it cannot load," and only the distinction
+between them tells you whether to go looking for a file or for a dependency of a file.
+
+The general lesson is that a provisioned node's dependency graph is satisfied by its environment —
+modules setting `LD_LIBRARY_PATH`, packages installed in a known order — and none of that context
+travels with a copied binary. Reproducing it means rediscovering it at runtime, one failure at a
+time, which is precisely why the how-to guide records the sequence: the next person should not have
+to derive it again.
 
 ## Why the munge key is copied rather than read from NFS
 
@@ -222,9 +286,11 @@ Being explicit, since the distinction matters when someone else inherits the hos
 - It is **not BCM-managed**. It receives no image updates and appears in no node category. Every step
   here is manual and will drift on the next cluster upgrade.
 - It **cannot run jobs**. No `slurmd`, so the controller has no way to schedule work onto it.
-- `srun` and `sbatch` may work as submission clients, but jobs land on real compute nodes, and
-  anything depending on shared paths or MPI libraries this node lacks will behave differently here
-  than on a login node.
+- It **can** submit jobs, but only after the pyxis SPANK plugin is copied in by hand — see
+  [how-to/enable-job-submission.md](how-to/enable-job-submission.md). Jobs then land on real compute
+  nodes, and anything depending on shared paths or MPI libraries this node lacks will behave
+  differently here than on a login node. Container launch (`--container-image`) still does not work,
+  since there is no enroot.
 - Its user accounts are **local**, not LDAP. New cluster users will not exist here, and UID collisions
   become more likely over time.
 

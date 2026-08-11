@@ -11,6 +11,10 @@ find your own.
 | Local mount point | `/cm/shared` | Must match the export path exactly |
 | Slurm binaries | `/cm/local/apps/slurm/25.05/bin` | `ssh <hn> 'readlink -f $(which sinfo)'` |
 | Slurm libraries | `/cm/local/apps/slurm/25.05/lib64/slurm` | `ldd $(which sinfo)` |
+| Slurm plugins (SPANK, MPI) | `/cm/local/apps/slurm/25.05/lib64/slurm/` | Path named in `plugstack.conf.d`; `current -> 25.05` |
+| SPANK plugin list | `/cm/shared/apps/slurm/etc/slurm/plugstack.conf.d/*.conf` | `cat` it — shared, so this node inherits the cluster's |
+| PMIx (BCM build) | `/cm/local/apps/cm-pmix4/4.1.3/lib`, `current -> 4.1.3` | `ssh <hn> 'ls -d /cm/local/apps/*pmix*'` |
+| hwloc (BCM build) | `/cm/local/apps/hwloc2/2.8.0/lib` | RUNPATH in `mpi_pmix_v4.so`; absent locally, Ubuntu's is used instead |
 | `slurm.conf` (source) | `/cm/shared/apps/slurm/etc/slurm/slurm.conf` | `ls /cm/shared/apps/slurm/etc/slurm/` |
 | `slurm.conf` (local default) | `/etc/slurm/slurm.conf` | Symlink to the source |
 | `slurmdbd.conf` | `/cm/shared/apps/slurm/etc/slurmdbd.conf` | Same directory |
@@ -88,6 +92,7 @@ alone routes all fully qualified `*.cluster` lookups. See
 | `SlurmUser` | `slurm` | Name must resolve locally or config parsing fails |
 | `PrivateData` | `accounts,users,jobs,reservations` | `squeue`/`sacct` filter by caller UID; mismatch returns empty, not an error |
 | `SlurmctldHost` | `nscale-hn1` | Must be resolvable and reachable on 6817 |
+| `plugstack.conf.d` pyxis line | `required ... spank_pyxis.so ... sbatch_support=1` | `required` makes a failed load fatal; `sbatch_support=1` applies it to `sbatch` as well as `srun` |
 
 ## Files this setup creates or modifies
 
@@ -101,6 +106,9 @@ alone routes all fully qualified `*.cluster` lookups. See
 | `/etc/sudoers.d/slurm-path` | `secure_path` including Slurm bin | Create, `0440` |
 | `/etc/passwd`, `/etc/group` | `slurm` account; renumbered end user | Modify |
 | `/cm/local/apps/slurm/25.05/` | Extracted binaries and libraries | Create |
+| `/cm/local/apps/slurm/25.05/lib64/slurm/spank_pyxis.so` | SPANK plugin `srun`/`sbatch` require, `root:root`, `0644` | Copy from head node |
+| `/cm/local/apps/cm-pmix4/` | BCM PMIx tree, loaded by the MPI plugin at runtime | Copy from head node |
+| `/etc/ld.so.conf.d/cm-pmix4.conf` | Makes `libpmix.so.2` findable without `LD_LIBRARY_PATH` | Create, then `ldconfig` |
 | `/etc/clustershell/groups.conf.d/sinfo.conf` | `clush` group source backed by `sinfo` | Create |
 | `/etc/clustershell/groups.conf` | `default: sinfo` under `[Main]` | Modify |
 | `/etc/clustershell/clush.conf` | `fanout: 512` under `[Main]` | Modify |
@@ -115,6 +123,10 @@ alone routes all fully qualified `*.cluster` lookups. See
 | `pdsh` | Ubuntu `noble/universe` | Installed for `dshbak`; `pdsh` itself is unused |
 | `nfs-common` | Ubuntu | Only if `mount.nfs` is missing |
 | `slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb` | BCM head node | Extract with `dpkg -x`, do not apt install |
+| `spank_pyxis.so` | BCM head node, separate pyxis package | Copy the file; not in the Slurm `.deb` |
+| `libhwloc15` | Ubuntu `noble/universe` | Satisfies `mpi_pmix_v4.so`; BCM's RUNPATH dir is absent, so the default path is used |
+| `libevent-pthreads-2.1-7t64` | Ubuntu `noble/main` | PMIx dependency; the `t64` suffix is noble's, the soname is not |
+| `cm-pmix4` tree (4.1.3) | BCM head node `/cm/local/apps/` | Copy, do not substitute Ubuntu's `libpmix2t64` — wire-protocol skew |
 
 Unresolvable dependencies in the BCM `.deb`: `cm-pmix4-local`, `cm-ucx-local`, `cm-hwloc2-local`,
 `cm-config-cm (= 11.0)`. None are required by the client query tools.
@@ -149,6 +161,29 @@ Full health check:
 
 ```
 mountpoint /cm/shared && munge -n | unmunge && sinfo | head -3 && squeue | head -3
+```
+
+Submission health check — each stage fails differently, see
+[how-to/enable-job-submission.md](how-to/enable-job-submission.md):
+
+```
+ls /cm/local/apps/slurm/current/lib64/slurm/spank_pyxis.so && ldd /cm/local/apps/cm-pmix4/current/lib/libpmix.so.2 | grep 'not found'; srun --version && srun -N1 --time=1 hostname
+```
+
+Find what a plugin will fail to load, and where it searches:
+
+```
+ldd <plugin>.so | grep 'not found'
+```
+
+```
+objdump -p <plugin>.so | grep -Ei 'RPATH|RUNPATH'
+```
+
+Load a library standalone to see the real `dlopen` error, which Slurm's message hides:
+
+```
+python3 -c "import ctypes; ctypes.CDLL('libpmix.so.2')"
 ```
 
 ## ClusterShell quick reference
