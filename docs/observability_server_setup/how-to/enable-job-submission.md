@@ -226,7 +226,7 @@ fix is to copy BCM's matching tree rather than install an Ubuntu package.
 
 | Point | Detail |
 |---|---|
-| `--container-image` still fails | Pyxis invokes enroot at launch, which this node does not have |
+| `--container-image` requires enroot | Pyxis invokes enroot at launch — see [install-enroot.md](install-enroot.md) |
 | MPI jobs are unproven | This verifies the plugin stack initialises. A real multi-rank job also exercises UCX and fabric access this host may lack |
 | Everything here is unmanaged | A cluster pyxis or PMIx upgrade leaves stale copies here; an ABI change breaks `srun` again with no warning |
 | New plugins break it again | Another `required` line in `plugstack.conf.d` fails the same way, since the list is shared and the plugins are not |

@@ -27,6 +27,7 @@ This documentation follows the [Diátaxis](https://diataxis.fr/) framework.
 | [set-up-munge.md](how-to/set-up-munge.md) | Install munge and install the cluster's key locally |
 | [install-slurm-binaries.md](how-to/install-slurm-binaries.md) | Get Slurm client binaries on without BCM repo access |
 | [enable-job-submission.md](how-to/enable-job-submission.md) | Supply the SPANK plugin `srun` and `sbatch` refuse to start without |
+| [install-enroot.md](how-to/install-enroot.md) | Install enroot so `--container-image` jobs can launch via Pyxis |
 | [align-uids.md](how-to/align-uids.md) | Match local UIDs to cluster UIDs so `squeue` returns data |
 | [add-cmods-user.md](how-to/add-cmods-user.md) | Provision the `cmods` admin account on a new node, UID-aligned |
 | [persist-environment.md](how-to/persist-environment.md) | Make `sinfo` work after reboot, under `sudo`, and in cron |
