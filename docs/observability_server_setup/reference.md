@@ -128,7 +128,7 @@ alone routes all fully qualified `*.cluster` lookups. See
 | `enroot+caps` | BCM head node, `/cluster/dpkg/` staging | `dpkg -i` after `enroot`; sets file capabilities |
 | `libhwloc15` | Ubuntu `noble/universe` | Satisfies `mpi_pmix_v4.so`; BCM's RUNPATH dir is absent, so the default path is used |
 | `libevent-pthreads-2.1-7t64` | Ubuntu `noble/main` | PMIx dependency; the `t64` suffix is noble's, the soname is not |
-| `cm-pmix4` tree (4.1.3) | BCM head node `/cm/local/apps/` | Copy, do not substitute Ubuntu's `libpmix2t64` — wire-protocol skew |
+| `cm-pmix4-local` (4.1.3) | BCM head node, `/cluster/dpkg/` staging | `dpkg -x`; `cm-config-cm` dep is metadata-only, not a runtime requirement. Do not substitute Ubuntu's `libpmix2t64` — wire-protocol skew |
 
 Unresolvable dependencies in the BCM `.deb`: `cm-pmix4-local`, `cm-ucx-local`, `cm-hwloc2-local`,
 `cm-config-cm (= 11.0)`. None are required by the client query tools.

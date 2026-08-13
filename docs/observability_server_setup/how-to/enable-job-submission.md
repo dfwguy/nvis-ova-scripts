@@ -130,19 +130,23 @@ On the head node PMIx is not in the `ldconfig` cache either; BCM's environment m
 path at runtime. An unmanaged node loads no modules, which is why it must be made visible another
 way.
 
-Copy the tree from the head node. Pull as your own user first — `sudo rsync` runs its SSH as root,
-and root cannot log in to the head node:
+Download the BCM package and extract it. The package has a `cm-config-cm` dependency that does not
+reflect any runtime requirement — `dpkg -x` bypasses it the same way as the Slurm package:
+
+On the head node as root:
 
 ```
-rsync -a <headnode>:/cm/local/apps/cm-pmix4 /tmp/
+cd /cluster/dpkg && apt-get download cm-pmix4-local
 ```
 
+On the observability node as root:
+
 ```
-sudo cp -a /tmp/cm-pmix4 /cm/local/apps/
+dpkg -x /cluster/dpkg/cm-pmix4-local_4.1.3-100026-cm11.0-61feac3379_amd64.deb /
 ```
 
-Both steps preserve the `current -> 4.1.3` symlink, which the loader entry points through. Then make
-the path visible to every process, not just login shells:
+This places the tree under `/cm/local/apps/cm-pmix4/`, preserving the `current -> 4.1.3` symlink
+the loader entry points through. Then make the path visible to every process, not just login shells:
 
 ```
 printf '/cm/local/apps/cm-pmix4/current/lib\n' | sudo tee /etc/ld.so.conf.d/cm-pmix4.conf
@@ -234,6 +238,22 @@ fix is to copy BCM's matching tree rather than install an Ubuntu package.
 
 Record the source host and date alongside the Slurm `.deb` version — nothing on the system tracks any
 of it.
+
+## Fallback: rsync the cm-pmix4 tree directly
+
+If `/cluster/dpkg/` is not available or the package download fails, copy the installed tree from
+the head node directly. Pull as your own user first — `sudo rsync` runs its SSH as root, and root
+cannot log in to the head node:
+
+```
+rsync -a <headnode>:/cm/local/apps/cm-pmix4 /tmp/
+```
+
+```
+sudo cp -a /tmp/cm-pmix4 /cm/local/apps/
+```
+
+Both steps preserve the `current -> 4.1.3` symlink. Continue from the `ld.so.conf.d` step above.
 
 ## Related
 

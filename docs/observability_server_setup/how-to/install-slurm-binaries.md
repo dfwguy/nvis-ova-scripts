@@ -23,10 +23,21 @@ ssh <headnode> 'readlink -f $(which sinfo)'
 
 A result under `/cm/local/` means node-local by design and not shareable.
 
+## Get the package
+
+BCM's repository requires credentials. Download as root on the head node into the shared staging
+area, then extract on the observability node:
+
+On the head node as root:
+
+```
+cd /cluster/dpkg && apt-get download slurm25.05
+```
+
 ## Why `apt-get install` fails
 
 ```
-apt-get install -y ./slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb
+apt-get install -y /cluster/dpkg/slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb
 ```
 
 This reports unmet dependencies on `cm-pmix4-local`, `cm-ucx-local`, `cm-hwloc2-local`, and
@@ -35,11 +46,10 @@ leaves a broken package that blocks future apt operations.
 
 ## Extract instead of install
 
-Unpack the archive into the filesystem root. This bypasses dependency resolution and does not touch
-the dpkg database:
+On the observability node as root:
 
 ```
-dpkg -x slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb /
+dpkg -x /cluster/dpkg/slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb /
 ```
 
 Files land in `/cm/local/apps/slurm/<version>/`, the same place the real package would put them.
