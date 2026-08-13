@@ -287,10 +287,11 @@ Being explicit, since the distinction matters when someone else inherits the hos
   here is manual and will drift on the next cluster upgrade.
 - It **cannot run jobs**. No `slurmd`, so the controller has no way to schedule work onto it.
 - It **can** submit jobs, but only after the pyxis SPANK plugin is copied in by hand — see
-  [how-to/enable-job-submission.md](how-to/enable-job-submission.md). Jobs then land on real compute
-  nodes, and anything depending on shared paths or MPI libraries this node lacks will behave
-  differently here than on a login node. Container launch (`--container-image`) still does not work,
-  since there is no enroot.
+  [how-to/enable-job-submission.md](how-to/enable-job-submission.md). Container jobs
+  (`--container-image`) also require enroot — see
+  [how-to/install-enroot.md](how-to/install-enroot.md). Jobs land on real compute nodes, and
+  anything depending on shared paths or MPI libraries this node lacks will behave differently here
+  than on a login node.
 - Its user accounts are **local**, not LDAP. New cluster users will not exist here, and UID collisions
   become more likely over time.
 

@@ -124,6 +124,8 @@ alone routes all fully qualified `*.cluster` lookups. See
 | `nfs-common` | Ubuntu | Only if `mount.nfs` is missing |
 | `slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb` | BCM head node | Extract with `dpkg -x`, do not apt install |
 | `spank_pyxis.so` | BCM head node, separate pyxis package | Copy the file; not in the Slurm `.deb` |
+| `enroot` | BCM head node, `/cluster/dpkg/` staging | `dpkg -i`; no BCM-specific deps |
+| `enroot+caps` | BCM head node, `/cluster/dpkg/` staging | `dpkg -i` after `enroot`; sets file capabilities |
 | `libhwloc15` | Ubuntu `noble/universe` | Satisfies `mpi_pmix_v4.so`; BCM's RUNPATH dir is absent, so the default path is used |
 | `libevent-pthreads-2.1-7t64` | Ubuntu `noble/main` | PMIx dependency; the `t64` suffix is noble's, the soname is not |
 | `cm-pmix4` tree (4.1.3) | BCM head node `/cm/local/apps/` | Copy, do not substitute Ubuntu's `libpmix2t64` — wire-protocol skew |
