@@ -35,7 +35,15 @@ ls -lh /cluster/dpkg/enroot*.deb
 
 ## Install on the observability node
 
-On the observability node as root:
+Enroot depends on `parallel`. A plain `apt-get install -y parallel` fails on this node because the
+package conflicts with a file already installed by `moreutils` (both ship a `parallel` man page).
+Force the overwrite:
+
+```
+sudo apt-get -o Dpkg::Options::="--force-overwrite" install -y parallel
+```
+
+Then, on the observability node as root:
 
 ```
 cd /cluster/dpkg && dpkg -i enroot*.deb
