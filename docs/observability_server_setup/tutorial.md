@@ -9,8 +9,7 @@ BCM cluster, and see the same output the head node sees.
 
 - Root (or full `sudo`) on the client host, running Ubuntu 24.04.
 - Network reachability to the head node on the cluster network.
-- The BCM Slurm `.deb` copied to the client host. This tutorial uses
-  `slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb`.
+- Root on the head node, to download BCM packages to `/cluster/dpkg/`.
 - Shell access to the head node, to read UIDs and config.
 - The head node's IP and hostname. This tutorial uses `nscale-hn1` at `192.168.10.2`.
 
@@ -84,20 +83,28 @@ prove the key matches the controller's, only that munged can read and use it.
 
 ## Step 3: Get the Slurm binaries onto the node
 
-The obvious move fails. Try it, so you recognise the error later:
+BCM's package repository requires credentials. Download the `.deb` as root on the head node into
+the shared staging area:
 
 ```
-apt-get install -y ./slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb
+cd /cluster/dpkg && apt-get download slurm25.05
 ```
 
-apt refuses, because the package depends on `cm-pmix4-local`, `cm-ucx-local`, `cm-hwloc2-local`, and
+Back on the observability node, the obvious install move fails — try it so you recognise the error
+later:
+
+```
+apt-get install -y /cluster/dpkg/slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb
+```
+
+apt refuses because the package depends on `cm-pmix4-local`, `cm-ucx-local`, `cm-hwloc2-local`, and
 `cm-config-cm` — all of which live in BCM's repository, which this node is not subscribed to.
 
 The client tools do not actually need those. Unpack the archive directly, bypassing dependency
 resolution and the dpkg database:
 
 ```
-dpkg -x slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb /
+dpkg -x /cluster/dpkg/slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb /
 ```
 
 Verify nothing is missing at the linker level:
