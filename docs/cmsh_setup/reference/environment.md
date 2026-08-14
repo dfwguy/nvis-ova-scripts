@@ -1,14 +1,14 @@
 # Reference: environment as built
 
-Values observed on 2026-08-06. Anything marked **VERIFY** was inferred and needs
-confirming from the CLI.
+Values observed on 2026-08-06. They are site-specific examples, not defaults;
+confirm them on the host before applying a procedure.
 
 ## Hosts
 
 | Role | Hostname | Address | OS |
 |---|---|---|---|
-| BCM headnode | `nscale-hn1` | 192.168.10.2 | Ubuntu (24.04 — **VERIFY**) |
-| cmsh client | `network-server` | — | Ubuntu 24.04 (**VERIFY** with `lsb_release -a`) |
+| BCM headnode | `nscale-hn1` | 192.168.10.2 | Ubuntu 24.04 (confirm with `lsb_release -a`) |
+| cmsh client | `network-server` | — | Ubuntu 24.04 (confirm with `lsb_release -a`) |
 
 The client's Ubuntu release must match the headnode's, because the `.deb` files
 are built per release.
@@ -63,9 +63,9 @@ The recursive set also includes `cm-boost`, `cm-openssl`, `cm-curl`,
 | `cmdaemon` | not registered with dpkg | `dpkg -x` |
 | `cmdaemon-cmsh` | not registered with dpkg | `dpkg -x` |
 
-## Outstanding details to capture
+## Site capture checklist
 
-Run these on the client and paste the output so the docs can be finalised:
+Run these on the client when adapting this guide to another environment:
 
 ```
 lsb_release -a; ls -l /cm/local/apps/cmd/bin/cmsh /cm/local/apps/cmd/etc/cacert.pem; ls -l ~/.cm/; getent hosts nscale-hn1; ls -l /usr/local/bin/cmsh /etc/profile.d/cmsh.sh
@@ -78,7 +78,6 @@ Also useful:
 - Whether the final working state came from `apt install` of the two debs or from
   `dpkg -x` — the docs currently assume `dpkg -x`.
 - Headnode OS release, from `lsb_release -a` on `nscale-hn1`.
-- Whether a scoped per-user certificate was issued, or root's `admin.pem` is
-  shared.
+- The site-specific per-user certificate issuance process and profile names.
 - Output of `ldd /cm/local/apps/cmd/bin/cmsh | grep 'not found'` — confirms
   whether any library gaps remain.

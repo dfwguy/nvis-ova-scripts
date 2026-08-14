@@ -1,6 +1,9 @@
 # Reference: commands used
 
-Copy-pasteable, in order. Substitute your own hostnames and version strings.
+Command catalog for the procedures in this guide. Substitute your own hostnames
+and version strings. For the ordered first-time workflow, use the
+[tutorial](../tutorial.md); this page is intentionally grouped by context rather
+than sequence.
 
 ## On the headnode
 
@@ -32,22 +35,12 @@ Bundle the packages:
 cd /tmp && tar czf cmsh-pkgs.tgz cmsh-pkgs
 ```
 
-Bundle the administrator certificate:
-
-```
-tar czf /tmp/cm-certs.tgz -C /root/.cm admin.pem admin.key
-```
-
 ## On the client
 
 Fetch and unpack the bundles:
 
 ```
 scp nscale-hn1:/tmp/cmsh-pkgs.tgz /tmp/ && cd /tmp && tar xzf cmsh-pkgs.tgz
-```
-
-```
-mkdir -p ~/.cm && scp nscale-hn1:/tmp/cm-certs.tgz . && tar xzf cm-certs.tgz -C ~/.cm && chmod 600 ~/.cm/*
 ```
 
 Install the dependency tree:
@@ -112,3 +105,9 @@ Confirm the connection is live:
 ```
 device list
 ```
+
+## Credential files
+
+cmsh reads a certificate and key from `~/.cm/`. Use the secure transfer and
+per-user certificate guidance in [set up cmsh credentials](../how-to/set-up-cmsh-credentials.md)
+instead of creating a `/tmp` archive containing a private key.

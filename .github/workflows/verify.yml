@@ -1,0 +1,21 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  shell-and-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Bash syntax
+        run: bash -n scripts/*.sh
+      - name: ShellCheck
+        run: shellcheck --severity=error scripts/*.sh
+      - name: Check relative Markdown links
+        run: find README.md docs -name '*.md' -print0 | xargs -0 perl scripts/check-markdown-links.pl

@@ -17,4 +17,7 @@ in either order, or alone.
 
 | Script | Description |
 |---|---|
-| [scripts/squeue-tree-viewer.sh](scripts/squeue-tree-viewer.sh) | Tree view of Slurm nodes: state, running jobs, and blocked pending jobs |
+| [scripts/squeue-tree-viewer.sh](scripts/squeue-tree-viewer.sh) | `nodetree`: tree view of Slurm nodes, running jobs, and node-blocked pending jobs |
+
+Run `scripts/squeue-tree-viewer.sh -h` to see its options. It requires Bash 4+
+and Slurm's `sinfo`, `squeue`, and `scontrol` commands.

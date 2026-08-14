@@ -6,59 +6,62 @@ accept.
 cmsh does not use a password. It presents an X.509 client certificate over TLS,
 and CMDaemon maps that certificate to a management profile.
 
-## Quick path (administrator certificate)
+## Transfer a certificate securely
 
-On the headnode:
-
-```
-tar czf /tmp/cm-certs.tgz -C /root/.cm admin.pem admin.key
-```
-
-On the client, as the user who will run cmsh:
+Create the receiving directory as the user who will run `cmsh`:
 
 ```
-mkdir -p ~/.cm && scp nscale-hn1:/tmp/cm-certs.tgz . && tar xzf cm-certs.tgz -C ~/.cm && chmod 600 ~/.cm/*
+mkdir -m 700 -p ~/.cm
 ```
 
-Verify:
+Use your site's approved certificate-issuance process to provide a certificate
+and key. If direct SSH transfer is permitted, an administrator on the headnode
+can copy a pair directly to that account:
 
 ```
-ls -l ~/.cm/
+scp /root/.cm/<user>.pem /root/.cm/<user>.key <client-user>@network-server:.cm/
 ```
 
-You should see `admin.pem` and `admin.key`, mode `600`, owned by you. cmsh reads
-`$HOME/.cm/` by default, so no flags are needed after this.
+On the client, restrict and verify the files:
 
-Remove the tarball from `/tmp` on both hosts when finished — it contains a
-private key.
+```
+chmod 600 ~/.cm/*.pem ~/.cm/*.key
+ls -ld ~/.cm && ls -l ~/.cm/
+```
+
+The directory should be mode `0700`; the certificate and key should be mode
+`0600`, owned by the intended user. cmsh reads `$HOME/.cm/` by default, so no
+flags are needed after this. Do not place a private key in `/tmp`, including in
+a tarball: a typical `/tmp` archive is readable by other local users.
 
 ## Preferred path for shared hosts
 
 Copying the root administrator certificate gives every holder full cluster
-control, and all actions appear in the CMDaemon log as the same identity. On a
-host with more than one user, issue a per-user certificate from a cmsh session on
-the headnode instead, under `cert` mode, bound to a suitable profile (for example
-a read-only profile for monitoring users).
-
-> **VERIFY** — record the exact `cert` mode commands used for your site, or note
-> that only the shared admin cert is in use today.
+control, and all actions appear in the CMDaemon log as the same identity. Issue
+a per-user certificate from `cmsh`'s `cert` mode on the headnode, bound to the
+smallest suitable profile (for example, a read-only monitoring profile). Keep
+the site-specific issuance commands with the cluster's access-control runbook;
+they depend on its configured profiles and CA.
 
 ## Server verification
 
 The client also needs to trust the headnode's CA:
 
-```
-scp nscale-hn1:/cm/local/apps/cmd/etc/cacert.pem /tmp/
-```
+First check whether extracting `cmdaemon` already installed it:
 
 ```
-sudo mkdir -p /cm/local/apps/cmd/etc && sudo cp /tmp/cacert.pem /cm/local/apps/cmd/etc/cacert.pem
+test -r /cm/local/apps/cmd/etc/cacert.pem && echo 'CA certificate present'
 ```
 
-> **VERIFY** — on this build, connection succeeded without a separately placed
-> `cacert.pem` (the `dpkg -x` of `cmdaemon` may have supplied it). Confirm
-> whether the file exists at that path on `network-server`, so the docs state
-> whether this step is required or optional.
+If it is absent, copy the public CA certificate from the headnode and install it
+at that path. The CA certificate is not secret, but copy it with `sudo install`
+so ownership and permissions are explicit:
+
+```
+scp nscale-hn1:/cm/local/apps/cmd/etc/cacert.pem /tmp/cacert.pem
+sudo install -D -o root -g root -m 0644 /tmp/cacert.pem /cm/local/apps/cmd/etc/cacert.pem
+rm -f /tmp/cacert.pem
+```
 
 ## Per-user checklist
 

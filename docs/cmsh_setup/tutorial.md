@@ -52,23 +52,37 @@ apt-get download $(apt-cache depends --recurse --no-recommends --no-suggests --n
 cd /tmp && tar czf cmsh-pkgs.tgz cmsh-pkgs
 ```
 
-## Step 3 — Copy packages and certificates to the client
+## Step 3 — Copy packages and credentials to the client
 
-On the headnode, bundle the credentials:
+On the client, prepare a private credentials directory:
 
 ```
-tar czf /tmp/cm-certs.tgz -C /root/.cm admin.pem admin.key
+mkdir -m 700 -p ~/.cm
 ```
 
-On the client:
+Copy the package bundle from the headnode:
 
 ```
 scp nscale-hn1:/tmp/cmsh-pkgs.tgz /tmp/ && cd /tmp && tar xzf cmsh-pkgs.tgz
 ```
 
+Use your approved credential-issuance process to place a certificate and key in
+this directory. Do not create an archive containing a private key under `/tmp`.
+If direct SSH transfer is permitted, an administrator on the headnode can copy
+the pair directly to the intended client account over the encrypted connection:
+
 ```
-mkdir -p ~/.cm && scp nscale-hn1:/tmp/cm-certs.tgz . && tar xzf cm-certs.tgz -C ~/.cm && chmod 600 ~/.cm/*
+scp /root/.cm/<user>.pem /root/.cm/<user>.key <client-user>@network-server:.cm/
 ```
+
+On the client, restrict the files:
+
+```
+chmod 600 ~/.cm/*.pem ~/.cm/*.key
+```
+
+For a shared host, use a scoped per-user certificate rather than copying the
+headnode administrator certificate. See [set up cmsh credentials](how-to/set-up-cmsh-credentials.md).
 
 ## Step 4 — Install the dependencies
 
