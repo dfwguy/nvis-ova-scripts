@@ -2,6 +2,9 @@
 
 Scripts and documentation for NVIS OVA infrastructure.
 
+For contributor verification and the GitLab merge-request workflow, see
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Docs
 
 Two guides, both about giving a standalone (non-BCM-managed) Ubuntu host access to a BCM cluster.
