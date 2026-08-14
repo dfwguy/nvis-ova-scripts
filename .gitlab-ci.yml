@@ -1,0 +1,13 @@
+stages:
+  - verify
+
+verify:
+  stage: verify
+  image: ubuntu:24.04
+  before_script:
+    - apt-get update
+    - DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends shellcheck
+  script:
+    - bash -n scripts/*.sh
+    - shellcheck scripts/*.sh
+    - find README.md docs -name '*.md' -print0 | xargs -0 perl scripts/check-markdown-links.pl
