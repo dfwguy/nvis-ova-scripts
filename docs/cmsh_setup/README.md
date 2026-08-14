@@ -29,8 +29,9 @@ solve a specific problem, reference describes, explanation gives background.
 | Explanation | [Why `dpkg -x` instead of `apt install`](explanation/why-dpkg-x.md) | Justifying the unconventional install |
 | Explanation | [Version parity and upgrade risk](explanation/version-parity.md) | Planning for the next BCM upgrade |
 
-## Status
+## Site-specific values
 
-This set documents a working configuration built on 2026-08-06. Items marked
-**VERIFY** need a value confirmed from the CLI before the docs are final — see
-the list at the bottom of [reference/environment.md](reference/environment.md).
+The examples document a working configuration observed on 2026-08-06. Replace
+hostnames, addresses, package versions, and certificate identities with values
+from your own site; [the environment reference](reference/environment.md)
+identifies every site-specific value and how to obtain it.

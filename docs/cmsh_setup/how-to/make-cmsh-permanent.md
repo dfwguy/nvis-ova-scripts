@@ -38,8 +38,14 @@ everyone:
 echo '192.168.10.2 nscale-hn1' | sudo tee -a /etc/hosts
 ```
 
-> **VERIFY** — confirm whether `network-server` resolves `nscale-hn1` via DNS or
-> whether an `/etc/hosts` entry was added.
+Check before adding a static entry:
+
+```
+getent hosts nscale-hn1
+```
+
+If this returns an address, DNS already provides the name and no `/etc/hosts`
+entry is needed.
 
 ## Optional: auto-run commands on connect
 

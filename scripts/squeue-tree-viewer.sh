@@ -58,15 +58,15 @@ scolor() {
   esac
 }
 
-declare -A NSTATE NREASON NGRES ALLN RUN BLK RUNC BLKC HLC
+declare -A NSTATE NREASON ALLN RUN BLK RUNC BLKC HLC
 
 # ---------- nodes ----------
-sopts=(-h -N -o '%N|%T|%G|%E')
+sopts=(-h -N -o '%N|%T|%E')
 [[ -n $PART  ]] && sopts+=(-p "$PART")
 [[ -n $NODES ]] && sopts+=(-n "$NODES")
-while IFS='|' read -r n st gres reason; do
+while IFS='|' read -r n st reason; do
   [[ -z $n ]] && continue
-  NSTATE[$n]=$st; NGRES[$n]=$gres; ALLN[$n]=1
+  NSTATE[$n]=$st; ALLN[$n]=1
   [[ $reason == "none" || $reason == "(null)" ]] && reason=""
   NREASON[$n]=$reason
 done < <(sinfo "${sopts[@]}" 2>/dev/null)
@@ -184,4 +184,3 @@ for k in "${!BLKC[@]}"; do tb=$(( tb + BLKC[$k] )); done
 bad=0; for n in "${SORTED[@]}"; do is_bad "${NSTATE[$n]:-}" && bad=$(( bad + 1 )); done
 printf '%s%d nodes | %d bad | %d job-slots running | %d node-blocked pending%s\n' \
   "$DIM" "${#SORTED[@]}" "$bad" "$tr" "$tb" "$RST"
-
