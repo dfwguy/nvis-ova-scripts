@@ -4,6 +4,9 @@ stages:
 verify:
   stage: verify
   image: ubuntu:24.04
+  tags:
+    - perflab
+    - size/medium
   before_script:
     - apt-get update
     - DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends shellcheck
