@@ -40,7 +40,8 @@ different or if more than one implementation is installed.
 
 ## 2. Install the busy-node helper
 
-Install the repository helper:
+Install the repository
+[`check_node_busy.sh` helper](../../../scripts/check_node_busy.sh):
 
 ```console
 sudo install -o root -g root -m 0755 scripts/check_node_busy.sh \
