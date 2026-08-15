@@ -82,4 +82,4 @@ md5sum /etc/munge/munge.key
 ## Related
 
 - [troubleshoot.md](troubleshoot.md) — distinguishing key mismatch from connectivity failure.
-- [explanation.md](../explanation.md) — why the key is copied locally rather than read from NFS.
+- [identity-and-environment.md](../explanation/identity-and-environment.md) — why the key is copied locally rather than read from NFS.

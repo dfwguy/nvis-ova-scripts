@@ -17,7 +17,7 @@ This documentation follows the [Diátaxis](https://diataxis.fr/) framework.
 | [tutorial.md](tutorial.md) | Tutorial | You've never done this and want a guided start-to-finish run |
 | [how-to/](how-to/) | How-to guides | You know the goal and want the steps for one specific task |
 | [reference.md](reference.md) | Reference | You need a path, UID, port, or config value |
-| [explanation.md](explanation.md) | Explanation | You want to know *why* it's built this way |
+| [explanation.md](explanation.md) | Explanations | You want to know *why* a part of the setup works this way |
 
 ## How-to guides
 

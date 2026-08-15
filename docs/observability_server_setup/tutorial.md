@@ -293,8 +293,10 @@ su - nvis -c 'sinfo | head -3' && sudo sinfo | head -3 && env -i /cm/local/apps/
 
 ## Where to go next
 
-- [explanation.md](explanation.md) — why BCM splits `/cm/local` from `/cm/shared`, and why the
-  munge key gets copied rather than read in place.
+- [How a client-only Slurm node works](explanation/client-only-slurm-node.md) — why BCM splits
+  `/cm/local` from `/cm/shared`.
+- [Munge, UIDs, and non-interactive environments](explanation/identity-and-environment.md) — why
+  the munge key is copied rather than read in place.
 - [how-to/troubleshoot.md](how-to/troubleshoot.md) — mapping each error message to its cause.
 - [how-to/set-up-dns.md](how-to/set-up-dns.md) — resolve cluster node names, needed before you can
   reach any node by name.
