@@ -20,13 +20,25 @@ Review the upstream
 before rollout, especially its containment prerequisites and production failure
 options.
 
-## 1. Install the busy-node helper
+## 1. Identify the module initialization script
 
-Find the compute node's real `scontrol` path:
+Find the system script that defines the `module` command. Environment Modules
+normally uses `/etc/profile.d/modules.sh`; Lmod commonly uses
+`/etc/profile.d/lmod.sh`. Verify the site path in a clean shell:
 
 ```console
-command -v scontrol
+env -i PATH=/usr/bin:/bin bash --noprofile --norc
+source /etc/profile.d/modules.sh
+type module
+module load slurm
+type -P scontrol
 ```
+
+The helper also checks the common Environment Modules and Lmod initialization
+paths automatically. Pass the site path explicitly in the PAM entry if it is
+different or if more than one implementation is installed.
+
+## 2. Install the busy-node helper
 
 Install the repository helper:
 
@@ -35,20 +47,25 @@ sudo install -o root -g root -m 0755 scripts/check_node_busy.sh \
     /usr/local/sbin/check_node_busy.sh
 ```
 
-The helper requires the absolute `scontrol` path as its only argument. It exits
-successfully only when `scontrol listpids` succeeds, has the expected header,
-and returns no process rows. Missing binaries, Slurm errors, and unexpected
-output all deny access.
+The helper starts with a trusted system `PATH`, sources the module initialization
+script, and attempts `module load slurm`. Module loading is best effort: a
+missing module command, a no-op, or a nonzero return does not decide access. The
+helper then locates the resulting `scontrol` executable and fails closed if it
+is absent or unusable.
 
-## 2. Configure the PAM account stack
+It exits successfully only when `scontrol listpids` succeeds, has the expected
+header, and returns no process rows. Slurm errors and unexpected output also
+deny access.
+
+## 3. Configure the PAM account stack
 
 Keep the distribution's existing `account` entries. After its normal account
-includes, add these entries to `/etc/pam.d/sshd`, replacing the `scontrol` path
-with the value found above:
+includes, add these entries to `/etc/pam.d/sshd`. Replace the module
+initialization path if the site uses a different one:
 
 ```pam
 account [success=done ignore=ignore default=die] pam_slurm_adopt.so action_no_jobs=ignore action_adopt_failure=deny action_generic_failure=deny
-account requisite pam_exec.so quiet /usr/local/sbin/check_node_busy.sh /cm/local/apps/slurm/current/bin/scontrol
+account requisite pam_exec.so quiet /usr/local/sbin/check_node_busy.sh /etc/profile.d/modules.sh
 account required  pam_access.so
 ```
 
@@ -70,21 +87,22 @@ validate credentials.
 Audit included PAM files for earlier `account sufficient` entries, such as
 `pam_localuser.so`; an earlier success can return before these entries run.
 
-## 3. Validate the helper
+## 4. Validate the helper
 
 Keep an existing root session open and test on one drained compute node first.
 Run the helper directly:
 
 ```console
 sudo /usr/local/sbin/check_node_busy.sh \
-    /cm/local/apps/slurm/current/bin/scontrol
+    /etc/profile.d/modules.sh
 echo $?
 ```
 
-An idle node returns `0`; a node with Slurm-managed PIDs returns `1`. A broken
-or incorrect `scontrol` path must also return `1`.
+An idle node returns `0`; a node with Slurm-managed PIDs returns `1`. Temporarily
+using an initialization script that does not expose `scontrol` must also return
+`1`.
 
-## 4. Test every login path
+## 5. Test every login path
 
 Use a second terminal to verify each branch:
 
@@ -95,6 +113,8 @@ Use a second terminal to verify each branch:
 | User owns no local job; node has Slurm-managed PIDs | Login fails |
 | User owns no local job; node has no Slurm-managed PIDs; `pam_access` allows | Login succeeds |
 | User owns no local job; node has no Slurm-managed PIDs; `pam_access` denies | Login fails |
+| Module load is unavailable or returns nonzero, but `scontrol` is executable | The `scontrol` result decides access |
+| Module load does not expose an executable `scontrol` | Login fails unless `pam_slurm_adopt` already succeeded |
 | `scontrol` fails | Login fails unless `pam_slurm_adopt` already succeeded |
 
 Confirm adoption for the job-owner case with the site's normal cgroup or Slurm
