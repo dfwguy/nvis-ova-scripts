@@ -128,4 +128,4 @@ apt-get install -y nfs-common
 ## Related
 
 - [set-up-munge.md](set-up-munge.md) — the munge key may live on this share.
-- [explanation.md](../explanation.md) — why `/cm/shared` holds config but not binaries.
+- [client-only-slurm-node.md](../explanation/client-only-slurm-node.md) — why `/cm/shared` holds config but not binaries.

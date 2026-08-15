@@ -41,18 +41,8 @@ No output means you are done. Any line listed is a library to source — extract
 the matching `cm-*` deb the same way, most likely `cm-openssl`, `cm-boost`, or
 `cm-curl`.
 
-## What this deliberately skips
+Record the extracted BCM version and repeat this procedure after a head-node
+upgrade. Dpkg does not track, upgrade, or remove files placed by `dpkg -x`.
 
-| Skipped | Consequence |
-|---|---|
-| `postinst` scripts | No `cmd` service is created or started; the host never self-registers |
-| `cm-config-cm` system rewriting | apt repos, PAM, and `profile.d` on this host are left alone |
-| dpkg database registration | `dpkg -l` will not list `cmdaemon-cmsh`; apt cannot upgrade or remove it |
-
-## Consequences to plan for
-
-- Upgrades are manual. Re-run the extraction after any headnode BCM upgrade.
-- `apt` may later install a conflicting file at the same path with no warning.
-  In practice `/cm/` is untouched by Ubuntu packages, so this is low risk.
-- To undo, delete `/cm/local/apps/cmd/bin` and the other extracted paths by
-  hand; there is no `apt remove`.
+For the reasons and maintenance trade-offs, see
+[Why `dpkg -x` instead of `apt install`](../explanation/why-dpkg-x.md).

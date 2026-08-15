@@ -34,16 +34,6 @@ On the head node as root:
 cd /cluster/dpkg && apt-get download slurm25.05
 ```
 
-## Why `apt-get install` fails
-
-```
-apt-get install -y /cluster/dpkg/slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb
-```
-
-This reports unmet dependencies on `cm-pmix4-local`, `cm-ucx-local`, `cm-hwloc2-local`, and
-`cm-config-cm`. Those exist only in BCM's repository. Do **not** force with `--force-depends` — that
-leaves a broken package that blocks future apt operations.
-
 ## Extract instead of install
 
 On the observability node as root:
@@ -53,6 +43,8 @@ dpkg -x /cluster/dpkg/slurm25.05_25.05.8-101099-cm11.0-a3a58b4841_amd64.deb /
 ```
 
 Files land in `/cm/local/apps/slurm/<version>/`, the same place the real package would put them.
+Do not install with `--force-depends`; extract the package so apt is not left
+with an unsatisfied package record.
 
 ## Verify
 
@@ -62,9 +54,7 @@ Check the linker resolves everything:
 ldd /cm/local/apps/slurm/25.05/bin/sinfo | grep 'not found'
 ```
 
-Empty output means you are done. The client tools link only against `libslurmfull.so` (found via
-RPATH inside the package) and base glibc — the MPI, UCX, and hwloc dependencies apply to `slurmd`
-and MPI launch paths, not to read-only query tools.
+Empty output means the query binaries are ready.
 
 If libraries *are* missing, install Ubuntu equivalents:
 
@@ -72,19 +62,12 @@ If libraries *are* missing, install Ubuntu equivalents:
 apt-get install -y libhwloc15 libpmix2 libucx0
 ```
 
-## Trade-offs of extraction
-
-| Consequence | Detail |
-|---|---|
-| Query tools only | `srun` and `sbatch` still abort — they load SPANK plugins that ship in separate packages. See [enable-job-submission.md](enable-job-submission.md) |
-| No dpkg record | `apt list --installed` won't show it; nothing tracks or removes these files |
-| No upgrade path | A cluster Slurm upgrade requires repeating this by hand with a new `.deb` |
-| Version skew risk | Client and controller must stay within Slurm's supported version window |
-| Uninstall is manual | `rm -rf /cm/local/apps/slurm/<version>` |
-
-Record the version and `.deb` filename somewhere durable, since nothing on the system will.
+Record the extracted package version. Dpkg will not track or upgrade these
+files. To enable `srun` and `sbatch`, continue with
+[Make job submission work](enable-job-submission.md).
 
 ## Related
 
 - [persist-environment.md](persist-environment.md) — putting this `bin` on PATH permanently.
-- [explanation.md](../explanation.md) — why the `cm-*` dependencies are not actually required.
+- [client-only-slurm-node.md](../explanation/client-only-slurm-node.md) — why extraction is sufficient for query tools.
+- [submission-dependencies.md](../explanation/submission-dependencies.md) — why submission needs additional files.

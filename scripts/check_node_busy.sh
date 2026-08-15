@@ -4,43 +4,15 @@
 
 set -o nounset
 
-if (( $# > 1 )); then
-    exit 1
-fi
+(( $# == 0 )) || exit 1
 
-# Do not search a caller-controlled PATH from the PAM environment. A trusted
-# module initialization script may extend this baseline below.
+# Use the cluster's Slurm module rather than the SSH/PAM environment.
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
-unset MODULEPATH MODULESHOME LOADEDMODULES _LMFILES_ \
-    LMOD_DEFAULT_MODULES LMOD_SYSTEM_DEFAULT_MODULES
 
-readonly requested_module_init=${1:-}
-readonly -a module_init_files=(
-    "$requested_module_init"
-    /etc/profile.d/modules.sh
-    /etc/profile.d/lmod.sh
-    /usr/share/Modules/init/bash
-)
-
-unset -f module 2>/dev/null || true
-
-for module_init in "${module_init_files[@]}"; do
-    if [[ -n $module_init && $module_init == /* && -r $module_init ]]; then
-        # shellcheck source=/dev/null
-        source "$module_init" >/dev/null 2>&1 || true
-    fi
-
-    if command -v module >/dev/null 2>&1; then
-        break
-    fi
-done
-
-# Loading is best effort: scontrol may already be available, and some module
-# implementations return failure when the requested module is already loaded.
-if command -v module >/dev/null 2>&1; then
-    module load slurm >/dev/null 2>&1 || true
-fi
+# shellcheck source=/dev/null
+source /etc/profile.d/modules.sh >/dev/null 2>&1 || exit 1
+module load slurm >/dev/null 2>&1 || exit 1
 
 if ! scontrol=$(type -P scontrol) || [[ ! -x $scontrol ]]; then
     exit 1

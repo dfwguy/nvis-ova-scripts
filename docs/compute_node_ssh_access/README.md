@@ -8,6 +8,7 @@ This documentation follows the [Diátaxis](https://diataxis.fr/) framework.
 | Document | Type | Use it when |
 |---|---|---|
 | [Gate SSH access on Slurm activity](how-to/gate-ssh-access-on-slurm-activity.md) | How-to | You need to install and validate the PAM policy on compute nodes |
+| [How the SSH access policy works](explanation/how-the-ssh-access-policy-works.md) | Explanation | You need to understand the policy decisions and failure behavior |
 
 ## Scope and assumptions
 
