@@ -13,6 +13,7 @@ the managed cluster itself.
 | [docs/observability_server_setup/](docs/observability_server_setup/) | `sinfo`, `squeue`, `sacct` — a read-only Slurm client, plus `clush` fan-out | Slurm controller, TCP 6817, munge + matching UID |
 | [docs/cmsh_setup/](docs/cmsh_setup/) | `cmsh` — the interactive BCM management shell | CMDaemon, TCP 8081, X.509 client certificate |
 | [docs/compute_node_ssh_access/](docs/compute_node_ssh_access/) | Job-aware SSH admission on compute nodes, with an idle-node fallback | Local PAM stack, `pam_slurm_adopt`, and `scontrol` |
+| [docs/omnistation_group_credentials/](docs/omnistation_group_credentials/) | Secure, group-scoped GitLab credentials for `git` and `glab` | Git Credential Manager, `pass`, and `direnv` |
 
 ## Scripts
 
@@ -20,6 +21,7 @@ the managed cluster itself.
 |---|---|
 | [scripts/check_node_busy.sh](scripts/check_node_busy.sh) | PAM helper that succeeds only when the local node has no Slurm-managed processes |
 | [scripts/squeue-tree-viewer.sh](scripts/squeue-tree-viewer.sh) | `nodetree`: tree view of Slurm nodes, running jobs, and node-blocked pending jobs |
+| [scripts/clone-gitlab-group.sh](scripts/clone-gitlab-group.sh) | Clone an HTTPS GitLab repository with the matching group token from `pass` |
 
 Run `scripts/squeue-tree-viewer.sh -h` to see its options. It requires Bash 4+
 and Slurm's `sinfo`, `squeue`, and `scontrol` commands.
