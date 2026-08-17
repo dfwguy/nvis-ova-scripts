@@ -17,7 +17,25 @@ For `git`, use a token with `read_repository` or `write_repository` as needed.
 For `glab`, use `read_api` for read-only API work or `api` for commands that
 create or change GitLab objects. See the [reference](reference.md#token-scopes).
 
-## Step 1 — configure Git to distinguish repositories
+## Step 1 — install `pass`
+
+Install the standard Ubuntu package:
+
+```bash
+sudo apt update
+sudo apt install -y pass
+```
+
+Confirm that it is available before continuing:
+
+```bash
+pass --version
+```
+
+`pass` encrypts secrets with GnuPG. Ensure GnuPG is installed and that you have
+an encryption key available before storing a token.
+
+## Step 2 — configure Git to distinguish repositories
 
 Run once:
 
@@ -30,7 +48,19 @@ Git normally treats all HTTPS repositories on one host as the same credential
 context. `credential.useHttpPath=true` makes the repository path part of that
 context, so a token for one group/project is not silently offered to another.
 
-## Step 2 — enable `direnv` in Bash
+## Step 3 — install and enable `direnv` in Bash
+
+Install the standard Ubuntu package:
+
+```bash
+sudo apt install -y direnv
+```
+
+Confirm that it is available before configuring the shell:
+
+```bash
+direnv version
+```
 
 Run this in the current shell:
 
@@ -46,7 +76,7 @@ eval "$(direnv hook bash)"
 
 Open a new terminal, or reload your Bash configuration, before continuing.
 
-## Step 3 — store one group token in `pass`
+## Step 4 — store one group token in `pass`
 
 Choose a stable secret path from the group name. For example, store the token
 for the `omnistation-platform` group:
@@ -58,7 +88,7 @@ pass insert -m gitlab/omnistation-platform/token
 Paste the token only when `pass` prompts, then press Ctrl-D. Do not paste a
 token into this document, a command line, or a chat window.
 
-## Step 4 — attach the token to the group workspace
+## Step 5 — attach the token to the group workspace
 
 At the root of that group workspace, create `.envrc` with this one line:
 
@@ -79,14 +109,14 @@ direnv allow
 
 When you enter the workspace or any repository below it, `direnv` loads this
 group's `GITLAB_TOKEN`; when you leave, it removes the variable. Repeat steps
-3–4 for each group workspace, using a different `pass` path.
+4–5 for each group workspace, using a different `pass` path.
 
 Do not put a broad main token in `~/git/.envrc` unless you deliberately want it
 available in every workspace that has no nearer `.envrc`. A group workspace
 `.envrc` is nearer for repositories below it, so it replaces—not combines
 with—the parent context. Do not call `source_up` from a group `.envrc`.
 
-## Step 5 — verify `glab`
+## Step 6 — verify `glab`
 
 From inside a repository that has the expected GitLab remote, run:
 
@@ -110,7 +140,7 @@ glab repo view
 Do not use `glab auth login` to switch between group tokens on the same host:
 it sets a host-level default rather than a workspace-level one.
 
-## Step 6 — clone with the group token
+## Step 7 — clone with the group token
 
 Use the included helper to create the group workspace if needed, configure its
 local `.envrc`, save the matching credential for this exact repository path,
@@ -126,7 +156,7 @@ does not read a token from an argument, write one to a remote URL, or expose a
 parent workspace's credential inside the new checkout. See [the cloning
 how-to](how-to/clone-a-group-repository.md) for the interface and behavior.
 
-## Step 7 — let Git save a credential manually (optional)
+## Step 8 — let Git save a credential manually (optional)
 
 From a repository in this group, run a normal operation:
 

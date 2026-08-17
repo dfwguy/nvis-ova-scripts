@@ -24,6 +24,7 @@ The examples use `gitlab-master.nvidia.com`; substitute your approved GitLab
 hostname if Omnistation uses a different instance. The token value never
 belongs in Git configuration, a remote URL, shell history, or a committed file.
 
-This guide assumes Ubuntu with Git Credential Manager, `pass`, GnuPG, and
-`direnv` installed. It does not create, grant, or revoke GitLab tokens; group
-owners manage those in GitLab.
+This guide assumes Ubuntu with Git Credential Manager and GnuPG installed. The
+[tutorial](tutorial.md#step-1--install-pass) includes Ubuntu installation
+commands for `pass` and `direnv`. It does not create, grant, or revoke GitLab
+tokens; group owners manage those in GitLab.
