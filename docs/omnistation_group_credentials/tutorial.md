@@ -111,6 +111,30 @@ When you enter the workspace or any repository below it, `direnv` loads this
 group's `GITLAB_TOKEN`; when you leave, it removes the variable. Repeat steps
 4–5 for each group workspace, using a different `pass` path.
 
+### Require the GnuPG passphrase on each workspace entry
+
+`pass` encrypts the token with your GnuPG key. By default, `gpg-agent` caches
+the key passphrase, so re-entering a workspace may not prompt. To require the
+passphrase whenever `direnv` loads the workspace credential, add these lines to
+`~/.gnupg/gpg-agent.conf`:
+
+```text
+default-cache-ttl 0
+max-cache-ttl 0
+no-allow-external-cache
+```
+
+Then flush and reload the agent configuration:
+
+```bash
+gpgconf --reload gpg-agent
+```
+
+With this setting, leaving the workspace and entering it again causes the
+`.envrc` lookup to prompt for the GnuPG passphrase. `direnv` does not re-run an
+unchanged `.envrc` while moving between subdirectories that remain under the
+same workspace, so it does not prompt for every `cd` there.
+
 Do not put a broad main token in `~/git/.envrc` unless you deliberately want it
 available in every workspace that has no nearer `.envrc`. A group workspace
 `.envrc` is nearer for repositories below it, so it replaces—not combines
