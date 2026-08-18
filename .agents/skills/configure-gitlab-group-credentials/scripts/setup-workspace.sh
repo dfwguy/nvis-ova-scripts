@@ -164,6 +164,7 @@ if [[ "$mode" == 'gated' ]]; then
     printf 'gated workspace metadata configured: %s\n' "$workspace"
     printf 'No token was decrypted, exported, verified, or stored.\n'
     printf 'Run audit-agent-gate.sh and restart agent processes before relying on the gate.\n'
+    printf 'In a trusted Maintainer context, run audit-repository-approvals.sh before relying on write access.\n'
     exit 0
 fi
 
@@ -204,3 +205,4 @@ GITLAB_TOKEN="$token" GITLAB_HOST="$host" glab api user --silent
 printf 'convenience mode configured and verified: %s\n' "$workspace"
 printf 'Warning: the token is available to processes in this workspace.\n'
 printf 'Re-enter the workspace or run: direnv reload\n'
+printf 'Run audit-repository-approvals.sh with a Maintainer token before relying on write access.\n'

@@ -1,6 +1,6 @@
 ---
 name: configure-gitlab-group-credentials
-description: Configure, human-gate, audit, verify, rotate, or troubleshoot GitLab group access tokens for Git-over-HTTPS and glab using pass, direnv, and GPG-backed Git Credential Manager. Use when a user asks to add or password-protect a GitLab group token, prevent an agent from using credentials without human presence, set up group-scoped Git or glab access, configure a group workspace, fix credential prompts or 401/403 errors, rotate a group token, or clone with the correct group credential.
+description: Configure, human-gate, audit, verify, rotate, or troubleshoot GitLab group access tokens and repository approval safeguards for Git-over-HTTPS and glab using pass, direnv, and GPG-backed Git Credential Manager. Use when a user asks to add or password-protect a GitLab group token, prevent an agent from using credentials without human presence, require independent merge-request approval, prevent author self-approval, set up group-scoped Git or glab access, configure a group workspace, fix credential prompts or 401/403 errors, rotate a group token, or clone with the correct group credential.
 ---
 
 # Configure GitLab group credentials
@@ -58,6 +58,71 @@ scripts/audit-agent-gate.sh <group> [workspace]
 
 Do not use `credential.helper store`; it writes plaintext. Require Git Credential Manager with the `gpg` credential store and `credential.useHttpPath=true`. On a tbot workstation, also verify `systemctl is-active tbot`; Git URL rewrites may require credentials for `127.0.0.1` instead of the GitLab hostname.
 
+## Choose and verify submission identity
+
+Treat these as independent identities:
+
+| GitLab display | Controlled by |
+|---|---|
+| Commit author and committer | Repository or global `user.name` and `user.email` when the commit is created |
+| Push actor | Credential selected by Git Credential Manager |
+| Merge-request author | Token used when the MR is created |
+
+Before the first commit, push, or MR operation, ask whether submissions should
+belong to the human or the group bot. Never infer commit attribution from the
+push token. Prefer repository-local Git identity so unrelated repositories are
+not affected.
+
+When the active token should own commits, resolve its `name` and `commit_email`
+from `glab api user`, then configure those exact values locally. Run:
+
+```bash
+scripts/audit-submission-identity.sh --from-token [--base REF] [workspace]
+```
+
+For gated mode, avoid decrypting merely to identify the bot. Supply identity
+values already obtained in the trusted credential context:
+
+```bash
+scripts/audit-submission-identity.sh \
+  --expected-name NAME --expected-email EMAIL [--base REF] [workspace]
+```
+
+Stop before push or merge when existing branch commits mismatch the desired
+identity. Rewriting published commits requires explicit approval and a
+`--force-with-lease` push. An existing MR retains its original author; recreate
+it under the intended token if MR attribution also matters. After pushing,
+verify the push actor through GitLab project events when attribution is
+important.
+
+## Verify repository approval safeguards
+
+Treat project governance as part of configuring a write credential. Before
+relying on write access, verify all three conditions:
+
+- At least one applicable project approval rule requires one or more approvals.
+- Merge-request authors cannot approve their own merge requests.
+- Per-merge-request approval-rule overrides are disabled so the requirement
+  cannot be reduced on an individual MR.
+
+Run the bundled read-only audit:
+
+```bash
+scripts/audit-repository-approvals.sh [--project ID_OR_PATH] [workspace]
+```
+
+Reading project approval settings requires a Maintainer token. A `403` with a
+Developer group token is inconclusive, not a pass. Prefer a human Maintainer for
+this one-time governance check; do not elevate an automation token solely to
+inspect or change approval policy.
+
+If configuration is authorized and the audit fails, have a Maintainer use
+**Settings > Merge requests > Approvals** to require at least one approval,
+enable **Prevent approval by merge request creator**, and enable **Prevent
+editing approval rules in merge requests**. Rerun the audit afterward. Do not
+infer these settings from GitLab defaults or from one MR's current approval
+count.
+
 ## Create and configure
 
 1. Direct a group Owner to the group's **Settings > Access Tokens** page. Have them create the bot with the needed role and scopes and copy its token immediately.
@@ -104,6 +169,7 @@ direnv status
 glab api user
 git ls-remote origin
 git push --dry-run origin HEAD
+scripts/audit-repository-approvals.sh
 ```
 
 Do not display the complete `glab api user` response when a short identity summary is enough. Older `glab` releases can return a false 404 for slash-form project paths; verify with `glab api projects/<numeric-project-id>` or the group's project listing before concluding that the token lacks access.
@@ -114,6 +180,8 @@ Interpret failures as follows:
 
 - `401`: wrong, expired, revoked, or stale saved token.
 - `403`: insufficient role or scope.
+- `403` from the repository approval audit: rerun in a Maintainer context;
+  Developer access cannot verify the protected project settings.
 - `404` from one `glab` project lookup: first rule out old-client path resolution by querying the numeric project ID.
 - Git repeatedly prompts: confirm `credential.useHttpPath=true` and approve the credential for the exact `path=<group>/<repo>.git` context.
 

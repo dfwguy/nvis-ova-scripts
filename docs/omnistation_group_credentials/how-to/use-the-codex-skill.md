@@ -62,6 +62,31 @@ Run the read-only gate audit with:
   nvis-ova
 ```
 
+Before committing or submitting work, audit whether the Git commit metadata
+matches the active token identity:
+
+```bash
+.agents/skills/configure-gitlab-group-credentials/scripts/audit-submission-identity.sh \
+  --from-token
+```
+
+The skill checks commit author/committer, push actor, and merge-request author
+separately. A bot token used for push does not automatically make existing or
+future commits bot-authored.
+
+Before relying on write access, run the repository-governance audit from a
+Maintainer credential context:
+
+```bash
+.agents/skills/configure-gitlab-group-credentials/scripts/audit-repository-approvals.sh
+```
+
+It verifies that at least one approval is required, merge-request authors
+cannot approve their own work, and individual merge requests cannot lower the
+project approval rule. A Developer group token can usually read the rule but
+receives `403` for the sensitive project settings; have a human Maintainer run
+the audit rather than treating that response as success.
+
 Choose convenience mode when you deliberately want `direnv`, `glab`, and Git
 Credential Manager to access the token. Convenience mode is not a security
 boundary against an agent running as your Unix user. See [gate credentials

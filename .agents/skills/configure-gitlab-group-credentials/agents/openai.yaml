@@ -1,4 +1,4 @@
 interface:
   display_name: "Configure GitLab Group Credentials"
-  short_description: "Choose gated or convenient GitLab access"
-  default_prompt: "Use $configure-gitlab-group-credentials to help me choose and configure gated or convenience access."
+  short_description: "Gate access, identity, and MR approvals"
+  default_prompt: "Use $configure-gitlab-group-credentials to configure GitLab access, verify submission identity, and audit required independent merge-request approval."

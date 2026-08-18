@@ -50,6 +50,15 @@ the `pass` entry for `glab`, and the Git Credential Manager entry for each
 affected repository. The [rotation how-to](how-to/rotate-or-replace-a-group-token.md)
 walks through both.
 
+## Why authentication does not set commit identity
+
+Git writes `user.name` and `user.email` into a commit before any network
+authentication occurs. Git Credential Manager later selects the identity that
+pushes those bytes, while `glab` uses its API token as the merge-request author.
+GitLab can therefore show different people or bots for the commit, push event,
+and merge request. Decide and audit all three before submission when consistent
+bot attribution matters.
+
 ## Why `.envrc` must stay uncommitted
 
 `direnv` executes `.envrc` after explicit approval. Even an `.envrc` that only
@@ -65,4 +74,6 @@ same credential helpers, and bypass editable wrapper scripts. A passphrase-
 protected GPG key with caching disabled provides useful human presence before
 decryption, but a strong boundary keeps the write credential in another OS
 account, workstation, or broker. Protected branches and required merge-request
-approvals constrain what a leaked or misused token can change.
+approvals constrain what a leaked or misused token can change. Requiring at
+least one independent reviewer is only durable when authors cannot self-approve
+and individual merge requests cannot override the project approval rule.
