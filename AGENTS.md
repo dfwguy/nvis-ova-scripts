@@ -7,8 +7,9 @@ Use the repository skill at
 asks to create, configure, rotate, verify, or troubleshoot a GitLab group
 access token for `git` or `glab`.
 
-Keep the canonical token in `pass`, select it per workspace with `direnv`, and
-store Git's exact repository-path credential through GPG-backed Git Credential
-Manager. Never request a token in chat or print, log, commit, or embed it in a
-URL. Prefer the skill's helper for existing workspaces and
-`scripts/clone-gitlab-group.sh` for new clones.
+Default to the skill's gated mode: keep the canonical token in passphrase-
+protected `pass`, use `direnv` only for non-secret routing metadata, and do not
+export `GITLAB_TOKEN` or approve it into Git Credential Manager. Never request
+a token in chat or print, log, commit, or embed it in a URL. Use convenience
+mode or `scripts/clone-gitlab-group.sh` only after the user explicitly accepts
+that these make the token available to same-user agent processes.

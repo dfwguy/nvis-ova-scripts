@@ -21,6 +21,11 @@ only for processes started there; leaving the workspace removes it. `pass`
 keeps the token encrypted at rest instead of storing it in `.envrc` or the
 shell startup file.
 
+This is routing and encryption at rest, not an agent authorization boundary.
+Once `direnv` exports `GITLAB_TOKEN`, every child process can use the bearer
+credential. A passphrase prompt gates only decryption; it cannot retract the
+token from an already-started process.
+
 `direnv` selects the closest applicable `.envrc`. A group workspace such as
 `~/git/omnistation-platform/.envrc` therefore shields repositories below it
 from a broader `~/git/.envrc`; it must not use `source_up`, which explicitly
@@ -52,3 +57,12 @@ reads `pass` is executable configuration tied to a local security boundary.
 Keeping it uncommitted prevents another checkout or contributor from silently
 changing that behavior, and prevents workstation-specific secret paths from
 becoming project configuration.
+
+## Why a hard agent gate needs isolation
+
+An agent running as the same OS user can read the same environment, invoke the
+same credential helpers, and bypass editable wrapper scripts. A passphrase-
+protected GPG key with caching disabled provides useful human presence before
+decryption, but a strong boundary keeps the write credential in another OS
+account, workstation, or broker. Protected branches and required merge-request
+approvals constrain what a leaked or misused token can change.

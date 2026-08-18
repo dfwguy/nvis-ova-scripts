@@ -6,6 +6,12 @@ repository and `glab` uses the group token for the workspace you are in.
 This is for an Ubuntu workstation with multiple GitLab group access tokens on
 the same GitLab host. It does not put a token in a repository or remote URL.
 
+This tutorial describes **convenience mode**: `direnv` decrypts the token into
+the workspace environment. It is not a security boundary against an agent
+running as the same Unix user. If you need human presence before an agent can
+obtain a token, follow [gate credentials from agents](how-to/gate-credentials-from-agents.md)
+instead.
+
 **You will need**
 
 - Git Credential Manager, `pass`, and GnuPG
@@ -88,7 +94,7 @@ pass insert -m gitlab/omnistation-platform/token
 Paste the token only when `pass` prompts, then press Ctrl-D. Do not paste a
 token into this document, a command line, or a chat window.
 
-## Step 5 — attach the token to the group workspace
+## Step 5 — attach the token to the group workspace in convenience mode
 
 At the root of that group workspace, create `.envrc` with this one line:
 
@@ -134,6 +140,10 @@ With this setting, leaving the workspace and entering it again causes the
 `.envrc` lookup to prompt for the GnuPG passphrase. `direnv` does not re-run an
 unchanged `.envrc` while moving between subdirectories that remain under the
 same workspace, so it does not prompt for every `cd` there.
+
+This protects decryption on workspace entry; it does not protect the token
+after `direnv` exports it. Every process started in that environment can use
+the token.
 
 Do not put a broad main token in `~/git/.envrc` unless you deliberately want it
 available in every workspace that has no nearer `.envrc`. A group workspace

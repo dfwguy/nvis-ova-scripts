@@ -1,20 +1,27 @@
 #!/usr/bin/env bash
-# Configure a workspace to use one GitLab group token without exposing it.
+# Configure a GitLab group workspace in gated or convenience mode.
 
 set -euo pipefail
 
 default_host='gitlab-master.nvidia.com'
+default_mode='gated'
 
 usage() {
     cat <<'EOF'
-Usage: setup-workspace.sh [--host HOST] [--dry-run] GROUP [WORKSPACE]
+Usage: setup-workspace.sh [--host HOST] [--mode gated|convenience] [--dry-run] GROUP [WORKSPACE]
 
-Configure an existing group workspace for pass, direnv, glab, and Git
-Credential Manager. The group token must already be stored at
-pass:gitlab/GROUP/token. WORKSPACE defaults to the current directory.
+Configure an existing GitLab group workspace. The default gated mode records
+only non-secret routing metadata and never decrypts, exports, verifies, or
+approves the token. Convenience mode exports the token through direnv and
+stores the repository credential; it is not a security boundary against an
+agent running as the same user.
+
+The token must already exist at pass:gitlab/GROUP/token. WORKSPACE defaults to
+the current directory.
 
 Examples:
   setup-workspace.sh nvis-ova
+  setup-workspace.sh --mode convenience nvis-ova
   setup-workspace.sh --dry-run parent/subgroup ~/git/parent/subgroup
 EOF
 }
@@ -25,12 +32,18 @@ die() {
 }
 
 host="$default_host"
+mode="$default_mode"
 dry_run=false
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --host)
             [[ $# -ge 2 ]] || die '--host requires a hostname'
             host="$2"
+            shift 2
+            ;;
+        --mode)
+            [[ $# -ge 2 ]] || die '--mode requires gated or convenience'
+            mode="$2"
             shift 2
             ;;
         --dry-run)
@@ -58,6 +71,7 @@ done
     usage >&2
     exit 2
 }
+[[ "$mode" == 'gated' || "$mode" == 'convenience' ]] || die '--mode must be gated or convenience'
 
 group="$1"
 workspace="${2:-$PWD}"
@@ -70,8 +84,10 @@ workspace="$(cd "$workspace" && pwd -P)"
 
 secret_path="gitlab/${group}/token"
 envrc="${workspace}/.envrc"
-expected_token_line="export GITLAB_TOKEN=\"\$(pass show ${secret_path})\""
 expected_host_line="export GITLAB_HOST=${host}"
+expected_group_line="export GITLAB_GROUP=${group}"
+expected_secret_path_line="export GITLAB_TOKEN_PASS_PATH=${secret_path}"
+expected_token_line="export GITLAB_TOKEN=\"\$(pass show ${secret_path})\""
 repository_path=''
 
 if git -C "$workspace" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -91,18 +107,67 @@ if git -C "$workspace" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 fi
 
 if [[ "$dry_run" == true ]]; then
-    printf 'Would read pass:%s without displaying it.\n' "$secret_path"
-    printf 'Would configure and approve %s for direnv.\n' "$envrc"
-    if [[ -n "$repository_path" ]]; then
-        printf 'Would approve the Git credential for https://%s/%s.\n' "$host" "$repository_path"
+    printf 'Mode: %s\n' "$mode"
+    printf 'Would configure %s for host and group routing.\n' "$envrc"
+    if [[ "$mode" == 'gated' ]]; then
+        printf 'Would not decrypt, export, verify, or approve pass:%s.\n' "$secret_path"
     else
-        printf 'No origin repository credential would be approved.\n'
+        printf 'Would decrypt pass:%s, export it, and approve the exact repository credential.\n' "$secret_path"
+        printf 'Warning: convenience mode is not an agent security boundary.\n'
     fi
-    printf 'Would verify the group bot identity with glab.\n'
     exit 0
 fi
 
-for required_command in pass direnv git glab git-credential-manager; do
+for required_command in pass direnv git; do
+    command -v "$required_command" >/dev/null 2>&1 || die "required command not found: $required_command"
+done
+
+pass ls "$secret_path" >/dev/null 2>&1 || \
+    die "no token found at pass:${secret_path}; store it with: pass insert -m ${secret_path}"
+
+if [[ -f "$envrc" ]]; then
+    if grep -q '^export GITLAB_HOST=' "$envrc" && ! grep -qxF "$expected_host_line" "$envrc"; then
+        die "$envrc selects a different GitLab host; review it manually"
+    fi
+    if grep -q '^export GITLAB_GROUP=' "$envrc" && ! grep -qxF "$expected_group_line" "$envrc"; then
+        die "$envrc selects a different GitLab group; review it manually"
+    fi
+    if grep -q '^export GITLAB_TOKEN_PASS_PATH=' "$envrc" && ! grep -qxF "$expected_secret_path_line" "$envrc"; then
+        die "$envrc selects a different pass entry; review it manually"
+    fi
+else
+    printf '%s\n' '# Local group workspace configuration. Do not commit this file.' > "$envrc"
+    chmod 600 "$envrc"
+    printf 'created %s\n' "$envrc"
+fi
+
+if [[ "$mode" == 'gated' ]] && grep -q '^export GITLAB_TOKEN=' "$envrc"; then
+    die "$envrc exports GITLAB_TOKEN; remove that line before enabling gated mode"
+fi
+if [[ "$mode" == 'convenience' ]] && grep -q '^export GITLAB_TOKEN=' "$envrc" && ! grep -qxF "$expected_token_line" "$envrc"; then
+    die "$envrc selects a different token; review it manually"
+fi
+
+grep -qxF "$expected_host_line" "$envrc" || printf '%s\n' "$expected_host_line" >> "$envrc"
+grep -qxF "$expected_group_line" "$envrc" || printf '%s\n' "$expected_group_line" >> "$envrc"
+grep -qxF "$expected_secret_path_line" "$envrc" || printf '%s\n' "$expected_secret_path_line" >> "$envrc"
+
+if git -C "$workspace" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    exclude_file="$(git -C "$workspace" rev-parse --git-path info/exclude)"
+    [[ "$exclude_file" == /* ]] || exclude_file="${workspace}/${exclude_file}"
+    mkdir -p "$(dirname "$exclude_file")"
+    grep -qxF '.envrc' "$exclude_file" 2>/dev/null || printf '%s\n' '.envrc' >> "$exclude_file"
+fi
+
+if [[ "$mode" == 'gated' ]]; then
+    direnv allow "$workspace"
+    printf 'gated workspace metadata configured: %s\n' "$workspace"
+    printf 'No token was decrypted, exported, verified, or stored.\n'
+    printf 'Run audit-agent-gate.sh and restart agent processes before relying on the gate.\n'
+    exit 0
+fi
+
+for required_command in glab git-credential-manager; do
     command -v "$required_command" >/dev/null 2>&1 || die "required command not found: $required_command"
 done
 
@@ -115,40 +180,17 @@ while IFS= read -r credential_helper; do
     esac
 done < <(git config --global --get-all credential.helper || true)
 [[ "$manager_configured" == true ]] || die 'Git Credential Manager is not the global credential helper'
-
 [[ "$(git config --global credential.credentialStore || true)" == 'gpg' ]] || \
     die 'credential.credentialStore must be gpg; plaintext credential storage is not allowed'
 [[ "$(git config --global credential.useHttpPath || true)" == 'true' ]] || \
     die 'credential.useHttpPath must be true for per-repository group tokens'
 
 if ! token="$(pass show "$secret_path" 2>/dev/null | sed -n '1p')" || [[ -z "$token" ]]; then
-    die "no token found at pass:${secret_path}; store it with: pass insert -m ${secret_path}"
+    die "could not decrypt pass:${secret_path}"
 fi
 trap 'unset token' EXIT
 
-if [[ -f "$envrc" ]]; then
-    if grep -q '^export GITLAB_TOKEN=' "$envrc" && ! grep -qxF "$expected_token_line" "$envrc"; then
-        die "$envrc selects a different token; review it manually"
-    fi
-    if grep -q '^export GITLAB_HOST=' "$envrc" && ! grep -qxF "$expected_host_line" "$envrc"; then
-        die "$envrc selects a different GitLab host; review it manually"
-    fi
-else
-    printf '%s\n' '# Local group workspace configuration. Do not commit this file.' > "$envrc"
-    chmod 600 "$envrc"
-    printf 'created %s\n' "$envrc"
-fi
-
 grep -qxF "$expected_token_line" "$envrc" || printf '%s\n' "$expected_token_line" >> "$envrc"
-grep -qxF "$expected_host_line" "$envrc" || printf '%s\n' "$expected_host_line" >> "$envrc"
-
-if git -C "$workspace" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    exclude_file="$(git -C "$workspace" rev-parse --git-path info/exclude)"
-    [[ "$exclude_file" == /* ]] || exclude_file="${workspace}/${exclude_file}"
-    mkdir -p "$(dirname "$exclude_file")"
-    grep -qxF '.envrc' "$exclude_file" 2>/dev/null || printf '%s\n' '.envrc' >> "$exclude_file"
-fi
-
 direnv allow "$workspace"
 
 if [[ -n "$repository_path" ]]; then
@@ -159,6 +201,6 @@ if [[ -n "$repository_path" ]]; then
 fi
 
 GITLAB_TOKEN="$token" GITLAB_HOST="$host" glab api user --silent
-printf 'verified the GitLab group token without displaying it\n'
-printf 'workspace configured: %s\n' "$workspace"
+printf 'convenience mode configured and verified: %s\n' "$workspace"
+printf 'Warning: the token is available to processes in this workspace.\n'
 printf 'Re-enter the workspace or run: direnv reload\n'

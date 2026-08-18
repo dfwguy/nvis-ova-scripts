@@ -1,9 +1,8 @@
 # How to use the Codex group-credential skill
 
 Use the repository's `configure-gitlab-group-credentials` skill when you want
-Codex to create, verify, rotate, or troubleshoot a group-scoped GitLab setup.
-It implements the same `pass` + `direnv` + Git Credential Manager model as this
-guide.
+Codex to create, human-gate, audit, verify, rotate, or troubleshoot a group-
+scoped GitLab setup. Gated mode is the default; convenience mode is explicit.
 
 ## Invoke it
 
@@ -35,14 +34,12 @@ cp -a .agents/skills/configure-gitlab-group-credentials \
 ## What it does
 
 The skill checks the current remote and credential backend before changing
-anything. After you create the group access token in GitLab and insert it into
-`pass`, its helper:
+anything. In default gated mode, its helper:
 
-1. Creates or validates the workspace `.envrc` without storing the token in it.
+1. Creates or validates `.envrc` with non-secret routing metadata only.
 2. Adds `.envrc` to the checkout's local Git exclude file.
-3. Approves the group token for the exact HTTPS repository path through
-   GPG-backed Git Credential Manager.
-4. Verifies the group bot through the GitLab API without displaying the token.
+3. Never decrypts, exports, verifies, or approves the token.
+4. Refuses an existing token export instead of claiming the workspace is gated.
 
 Run the helper directly when useful:
 
@@ -54,8 +51,21 @@ Run the helper directly when useful:
   nvis-ova
 ```
 
+Run the read-only gate audit with:
+
+```bash
+.agents/skills/configure-gitlab-group-credentials/scripts/audit-agent-gate.sh \
+  nvis-ova
+```
+
+Use `--mode convenience` only when you deliberately want `direnv`, `glab`, and
+Git Credential Manager to access the token. Convenience mode is not a security
+boundary against an agent running as your Unix user. See [gate credentials
+from agents](gate-credentials-from-agents.md) before relying on a passphrase as
+a human-presence control.
+
 The token must already exist at `pass:gitlab/nvis-ova/token`. Never paste it
-into a Codex conversation.
+or its GPG passphrase into a Codex conversation.
 
 ## Keep the installed copy current
 
