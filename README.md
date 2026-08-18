@@ -25,3 +25,12 @@ the managed cluster itself.
 
 Run `scripts/squeue-tree-viewer.sh -h` to see its options. It requires Bash 4+
 and Slurm's `sinfo`, `squeue`, and `scontrol` commands.
+
+## Codex skills
+
+| Skill | Description |
+|---|---|
+| [.agents/skills/configure-gitlab-group-credentials/](.agents/skills/configure-gitlab-group-credentials/) | Configure and verify group-scoped GitLab credentials with `pass`, `direnv`, and Git Credential Manager |
+
+See [how to use the Codex group-credential skill](docs/omnistation_group_credentials/how-to/use-the-codex-skill.md)
+for invocation and installation details.

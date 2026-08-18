@@ -1,0 +1,4 @@
+interface:
+  display_name: "Configure GitLab Group Credentials"
+  short_description: "Secure Git and glab group-token setup"
+  default_prompt: "Use $configure-gitlab-group-credentials to set up this GitLab group workspace securely."

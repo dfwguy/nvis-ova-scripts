@@ -11,6 +11,6 @@ verify:
     - apt-get update
     - DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends shellcheck
   script:
-    - bash -n scripts/*.sh
-    - shellcheck scripts/*.sh
-    - find README.md docs -name '*.md' -print0 | xargs -0 perl scripts/check-markdown-links.pl
+    - find scripts .agents/skills -type f -name '*.sh' -print0 | xargs -0 bash -n
+    - find scripts .agents/skills -type f -name '*.sh' -print0 | xargs -0 shellcheck
+    - find README.md AGENTS.md docs .agents/skills -name '*.md' -print0 | xargs -0 perl scripts/check-markdown-links.pl

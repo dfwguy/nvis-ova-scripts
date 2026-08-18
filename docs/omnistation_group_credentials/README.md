@@ -13,6 +13,7 @@ explanation provides the reasoning behind it.
 | Type | Document | Use it when |
 |---|---|---|
 | Tutorial | [Set up group credentials](tutorial.md) | First-time setup of Git Credential Manager, `pass`, and `direnv` |
+| How-to | [Use the Codex skill](how-to/use-the-codex-skill.md) | You want Codex to configure, verify, rotate, or troubleshoot a group credential |
 | How-to | [Clone a repository with its group token](how-to/clone-a-group-repository.md) | You want a new checkout without using a broad main credential |
 | How-to | [Rotate or replace a group token](how-to/rotate-or-replace-a-group-token.md) | A token expires, is rotated, or might have been exposed |
 | Reference | [Configuration reference](reference.md) | You need the exact paths, variables, commands, and required scopes |

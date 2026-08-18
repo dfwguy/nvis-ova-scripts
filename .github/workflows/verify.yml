@@ -14,8 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check Bash syntax
-        run: bash -n scripts/*.sh
+        run: find scripts .agents/skills -type f -name '*.sh' -print0 | xargs -0 bash -n
       - name: ShellCheck
-        run: shellcheck --severity=error scripts/*.sh
+        run: find scripts .agents/skills -type f -name '*.sh' -print0 | xargs -0 shellcheck --severity=error
       - name: Check relative Markdown links
-        run: find README.md docs -name '*.md' -print0 | xargs -0 perl scripts/check-markdown-links.pl
+        run: find README.md AGENTS.md docs .agents/skills -name '*.md' -print0 | xargs -0 perl scripts/check-markdown-links.pl
