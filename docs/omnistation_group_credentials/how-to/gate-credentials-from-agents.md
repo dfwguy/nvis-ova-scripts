@@ -78,7 +78,7 @@ environment. Resolve every target exactly before removing it.
 
    ```bash
    .agents/skills/configure-gitlab-group-credentials/scripts/setup-workspace.sh \
-     nvis-ova
+     --mode gated nvis-ova
    ```
 
 Gated `.envrc` content contains only values such as:

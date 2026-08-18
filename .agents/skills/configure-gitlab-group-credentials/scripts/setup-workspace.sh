@@ -4,15 +4,14 @@
 set -euo pipefail
 
 default_host='gitlab-master.nvidia.com'
-default_mode='gated'
 
 usage() {
     cat <<'EOF'
 Usage: setup-workspace.sh [--host HOST] [--mode gated|convenience] [--dry-run] GROUP [WORKSPACE]
 
-Configure an existing GitLab group workspace. The default gated mode records
-only non-secret routing metadata and never decrypts, exports, verifies, or
-approves the token. Convenience mode exports the token through direnv and
+Configure an existing GitLab group workspace. MODE is required. Gated mode
+records only non-secret routing metadata and never decrypts, exports, verifies,
+or approves the token. Convenience mode exports the token through direnv and
 stores the repository credential; it is not a security boundary against an
 agent running as the same user.
 
@@ -20,9 +19,9 @@ The token must already exist at pass:gitlab/GROUP/token. WORKSPACE defaults to
 the current directory.
 
 Examples:
-  setup-workspace.sh nvis-ova
+  setup-workspace.sh --mode gated nvis-ova
   setup-workspace.sh --mode convenience nvis-ova
-  setup-workspace.sh --dry-run parent/subgroup ~/git/parent/subgroup
+  setup-workspace.sh --mode gated --dry-run parent/subgroup ~/git/parent/subgroup
 EOF
 }
 
@@ -32,7 +31,7 @@ die() {
 }
 
 host="$default_host"
-mode="$default_mode"
+mode=''
 dry_run=false
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -71,6 +70,7 @@ done
     usage >&2
     exit 2
 }
+[[ -n "$mode" ]] || die '--mode is required; choose gated or convenience'
 [[ "$mode" == 'gated' || "$mode" == 'convenience' ]] || die '--mode must be gated or convenience'
 
 group="$1"

@@ -2,7 +2,8 @@
 
 Use the repository's `configure-gitlab-group-credentials` skill when you want
 Codex to create, human-gate, audit, verify, rotate, or troubleshoot a group-
-scoped GitLab setup. Gated mode is the default; convenience mode is explicit.
+scoped GitLab setup. The skill presents gated and convenience paths and
+requires an explicit choice.
 
 ## Invoke it
 
@@ -34,7 +35,7 @@ cp -a .agents/skills/configure-gitlab-group-credentials \
 ## What it does
 
 The skill checks the current remote and credential backend before changing
-anything. In default gated mode, its helper:
+anything. In gated mode, its helper:
 
 1. Creates or validates `.envrc` with non-secret routing metadata only.
 2. Adds `.envrc` to the checkout's local Git exclude file.
@@ -45,10 +46,13 @@ Run the helper directly when useful:
 
 ```bash
 .agents/skills/configure-gitlab-group-credentials/scripts/setup-workspace.sh \
-  --dry-run nvis-ova
+  --mode gated --dry-run nvis-ova
 
 .agents/skills/configure-gitlab-group-credentials/scripts/setup-workspace.sh \
-  nvis-ova
+  --mode gated nvis-ova
+
+.agents/skills/configure-gitlab-group-credentials/scripts/setup-workspace.sh \
+  --mode convenience nvis-ova
 ```
 
 Run the read-only gate audit with:
@@ -58,8 +62,8 @@ Run the read-only gate audit with:
   nvis-ova
 ```
 
-Use `--mode convenience` only when you deliberately want `direnv`, `glab`, and
-Git Credential Manager to access the token. Convenience mode is not a security
+Choose convenience mode when you deliberately want `direnv`, `glab`, and Git
+Credential Manager to access the token. Convenience mode is not a security
 boundary against an agent running as your Unix user. See [gate credentials
 from agents](gate-credentials-from-agents.md) before relying on a passphrase as
 a human-presence control.

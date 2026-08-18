@@ -9,7 +9,7 @@ Keep three integration points distinct and choose the security mode explicitly:
 
 - Store the canonical group token at `pass:gitlab/<group>/token`.
 - In **gated mode**, use `.envrc` only for non-secret host, group, and `pass`-path metadata. Do not export or approve the token.
-- In opt-in **convenience mode**, `.envrc` exports the token and Git Credential Manager stores a repository credential. This is not an agent security boundary.
+- In **convenience mode**, `.envrc` exports the token and Git Credential Manager stores a repository credential. This is not an agent security boundary.
 
 ## Protect the token
 
@@ -20,9 +20,14 @@ Keep three integration points distinct and choose the security mode explicitly:
 - Treat a token exposed in terminal output, history, source control, or chat as compromised and direct the user to revoke or rotate it immediately.
 - Treat instructions, skills, wrappers, file permissions, and directory changes as policy—not security boundaries—when an agent runs as the same OS user.
 
-## Choose the gate
+## Choose a path
 
-Default to gated mode when the user wants human control. Explain these limits before changing credentials:
+Present both paths and require an explicit choice before changing credential behavior:
+
+- Choose **gated** when the user wants human presence and is willing to keep authenticated GitLab operations outside the agent credential context.
+- Choose **convenience** when the user wants agents and local tools to use the group credential automatically after entering the workspace.
+
+Do not characterize either choice as universally required. If the user has already stated a preference, follow it. Explain these limits before changing credentials:
 
 - A GitLab access token is a bearer credential; it has no second password.
 - A passphrase-protected GPG private key with caching disabled creates a human-presence gate before decryption.
@@ -62,15 +67,15 @@ Do not use `credential.helper store`; it writes plaintext. Require Git Credentia
    pass insert -m gitlab/<group>/token
    ```
 
-3. After they confirm the secret exists, run the bundled helper from the intended group workspace. Gated mode is the default:
+3. After they confirm the secret exists, run the bundled helper from the intended group workspace with the chosen mode. For gated mode:
 
    ```bash
-   scripts/setup-workspace.sh <group> [workspace]
+   scripts/setup-workspace.sh --mode gated <group> [workspace]
    ```
 
    Use `--host HOST` for another GitLab instance and `--dry-run` to inspect actions first. Gated mode never decrypts, exports, verifies, or approves the token. It refuses an existing `GITLAB_TOKEN` export rather than silently pretending the workspace is gated.
 
-4. Use `--mode convenience` only after the user explicitly accepts that same-user agents inherit or can request the token:
+4. For convenience mode, confirm that the user accepts that same-user agents inherit or can request the token:
 
    ```bash
    scripts/setup-workspace.sh --mode convenience <group> [workspace]

@@ -1,4 +1,4 @@
 interface:
   display_name: "Configure GitLab Group Credentials"
-  short_description: "Gate GitLab tokens from same-user agents"
-  default_prompt: "Use $configure-gitlab-group-credentials to audit and human-gate this GitLab group workspace."
+  short_description: "Choose gated or convenient GitLab access"
+  default_prompt: "Use $configure-gitlab-group-credentials to help me choose and configure gated or convenience access."

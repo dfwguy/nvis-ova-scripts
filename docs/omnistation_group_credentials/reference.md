@@ -64,8 +64,8 @@ deliberately reintroduce the parent environment.
 | Trust a workspace `.envrc` | `direnv allow` |
 | Reload its environment | `direnv reload` |
 | Audit same-user gate bypasses | `.agents/skills/configure-gitlab-group-credentials/scripts/audit-agent-gate.sh <group>` |
-| Configure gated workspace metadata | `.agents/skills/configure-gitlab-group-credentials/scripts/setup-workspace.sh <group>` |
-| Opt into convenience mode | `.agents/skills/configure-gitlab-group-credentials/scripts/setup-workspace.sh --mode convenience <group>` |
+| Configure gated workspace metadata | `.agents/skills/configure-gitlab-group-credentials/scripts/setup-workspace.sh --mode gated <group>` |
+| Configure convenience mode | `.agents/skills/configure-gitlab-group-credentials/scripts/setup-workspace.sh --mode convenience <group>` |
 | Check the active `glab` authentication | `glab auth status` |
 | Remove a saved Git credential | `git credential reject` |
 | Clone with the matching group token | `scripts/clone-gitlab-group.sh <group> <https-url>` |
