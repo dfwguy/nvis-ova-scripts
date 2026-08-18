@@ -41,9 +41,12 @@ repository-specific credential. This duplicates an encrypted secret by design,
 but avoids token-bearing URLs and custom credential-helper scripts.
 
 The included `clone-gitlab-group.sh` makes the first clone follow this same
-model. It reads the group token from `pass`, approves it for the exact Git
-credential context, and then clones. A main Git credential is unnecessary for
-the normal path and never becomes the new repository's saved credential.
+model. Before reading the group token from `pass`, it requires Git Credential
+Manager with its GPG store and repository-path matching; it fails closed if a
+plaintext or unexpected helper could receive the token. It then approves the
+token for the exact Git credential context and clones. A main Git credential
+is unnecessary for the normal path and never becomes the new repository's
+saved credential.
 
 The practical trade-off is that a rotated token must be updated in both places:
 the `pass` entry for `glab`, and the Git Credential Manager entry for each

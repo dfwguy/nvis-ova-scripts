@@ -15,6 +15,12 @@ pass insert -m gitlab/omnistation-platform/token
 Paste it only at the `pass` prompt. Configure Git Credential Manager and
 `direnv` as described in [the tutorial](../tutorial.md).
 
+The helper fails closed before decrypting or approving the token unless Git
+Credential Manager is the only active credential helper for the repository,
+its credential store resolves to `gpg`, and `credential.useHttpPath` resolves
+to `true`. This prevents the token from being handed to a plaintext helper such
+as `credential.helper=store`.
+
 ## Clone the repository
 
 From a checkout of this repository, run:
@@ -48,13 +54,14 @@ scripts/clone-gitlab-group.sh --host gitlab.example.com parent/subgroup \
 
 ## What the helper does
 
-1. Reads `pass:gitlab/<group>/token`.
-2. Creates `~/git/<group>/.envrc` if absent. The file looks up the token from
+1. Verifies the repository's effective Git credential configuration.
+2. Reads `pass:gitlab/<group>/token`.
+3. Creates `~/git/<group>/.envrc` if absent. The file looks up the token from
    `pass`; it contains no token value.
-3. Runs `direnv allow` for the group workspace.
-4. Saves the token through `git credential approve` for the exact HTTPS
+4. Runs `direnv allow` for the group workspace.
+5. Saves the token through `git credential approve` for the exact HTTPS
    repository path.
-5. Runs `git clone` into the group workspace.
+6. Runs `git clone` into the group workspace.
 
 It refuses URLs outside the stated group or its subgroups, existing destination
 paths, non-HTTPS URLs, and group/destination paths that contain `..`.

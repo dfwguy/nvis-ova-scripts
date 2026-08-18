@@ -182,7 +182,7 @@ fully delivered without disclosing such a blocker.
    scripts/setup-workspace.sh --mode convenience <group> [workspace]
    ```
 
-5. If this repository contains `scripts/clone-gitlab-group.sh`, use it only for convenience-mode clones. It decrypts the group token and approves the exact repository credential.
+5. If this repository contains `scripts/clone-gitlab-group.sh`, use it only for convenience-mode clones. It must fail closed before decryption unless Git Credential Manager is the only active helper, its credential store is `gpg`, and `credential.useHttpPath=true`; it then approves the exact repository credential.
 
 ## Activate a human gate
 

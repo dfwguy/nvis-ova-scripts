@@ -15,16 +15,20 @@ projects. A group token does not grant access to unrelated groups.
 ## Git configuration
 
 ```bash
+git-credential-manager configure
 git config --global credential.useHttpPath true
 git config --global credential.credentialStore gpg
 ```
 
 | Setting | Purpose |
 |---|---|
+| `credential.helper manager` | Sends Git credential operations to Git Credential Manager. `git-credential-manager configure` sets this. |
 | `credential.useHttpPath` | Makes the HTTPS repository path part of Git's credential lookup. |
 | `credential.credentialStore gpg` | Tells Git Credential Manager to use its GPG-backed credential store. |
 
-Do not use `credential.helper store`; it writes tokens as plaintext.
+Do not use `credential.helper store`; it writes tokens as plaintext. The clone
+helper refuses to approve a token unless only Git Credential Manager is active
+for the target host and the other two settings resolve to the values above.
 
 ## Secret and workspace layout
 

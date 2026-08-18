@@ -46,13 +46,17 @@ an encryption key available before storing a token.
 Run once:
 
 ```bash
+git-credential-manager configure
 git config --global credential.useHttpPath true
 git config --global credential.credentialStore gpg
 ```
 
+The first command registers Git Credential Manager as Git's credential helper.
 Git normally treats all HTTPS repositories on one host as the same credential
 context. `credential.useHttpPath=true` makes the repository path part of that
 context, so a token for one group/project is not silently offered to another.
+The clone helper verifies all three settings before it decrypts or approves a
+token.
 
 ## Step 3 — install and enable `direnv` in Bash
 
