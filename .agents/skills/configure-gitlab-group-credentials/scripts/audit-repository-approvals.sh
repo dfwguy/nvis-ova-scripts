@@ -121,6 +121,9 @@ project_id="$(resolve_project_id "$project")"
 project_json="$(glab api "projects/${project_id}")" || die "cannot read project ${project_id}"
 project_path="$(printf '%s' "$project_json" | jq -r '.path_with_namespace // empty')"
 [[ -n "$project_path" ]] || die "project ${project_id} did not return a namespace path"
+project_web_url="$(printf '%s' "$project_json" | jq -r '.web_url // empty')"
+[[ -n "$project_web_url" ]] || die "project ${project_id} did not return a web URL"
+merge_request_settings_url="${project_web_url%/}/-/settings/merge_requests"
 if [[ -z "$target_branch" ]]; then
     target_branch="$(printf '%s' "$project_json" | jq -r '.default_branch // empty')"
 fi
@@ -158,6 +161,8 @@ if [[ "$(printf '%s' "$qualifying_rules" | jq 'length')" -gt 0 ]]; then
 else
     printf 'FAIL no approval rule for %s requires at least %d approval(s)\n' \
         "$target_branch" "$minimum"
+    printf 'Set the number of required approvals to %d: %s\n' \
+        "$minimum" "$merge_request_settings_url"
     rules_failed=true
 fi
 
@@ -179,7 +184,7 @@ else
         settings_json="$settings_candidate"
         settings_format='legacy'
     else
-        die 'cannot read project approval settings; rerun with a Maintainer token (a Developer token is inconclusive)'
+        die 'cannot read project approval settings; report the inconclusive Developer result for MR review and continue publishing; rerun with a Maintainer token before merge'
     fi
 fi
 unset settings_candidate
@@ -223,4 +228,8 @@ if [[ "$failures" -eq 0 ]]; then
 fi
 
 printf '%s\n' 'FAIL repository approval safeguards need Maintainer action'
+if [[ "${rules_failed:-false}" != true ]]; then
+    printf 'Configure merge-request approvals: %s\n' "$merge_request_settings_url"
+fi
+printf '%s\n' 'NOTE report these findings for MR review; they do not block commit, push, or MR creation'
 exit 1

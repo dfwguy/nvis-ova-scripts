@@ -203,12 +203,38 @@ username is clearest) and the group token as the password. It stores the
 credential securely using the configured GPG-backed store. This is only needed
 when you do not use the cloning helper, or when adding an existing checkout.
 
+## Step 9 — check merge-request approval policy
+
+Run the repository approval audit for the human merge reviewer, preferably
+from a Maintainer credential context:
+
+```bash
+.agents/skills/configure-gitlab-group-credentials/scripts/audit-repository-approvals.sh
+```
+
+If the audit says no approval rule requires an approval and the other checks
+pass, the only change needed is to set the number of required approvals to
+`1`. Open the direct settings URL printed by the audit. For the validation
+project, it is [the merge-request settings page](https://gitlab-master.nvidia.com/nvis-ova/validation/-/settings/merge_requests).
+For another project, use:
+
+```text
+https://gitlab-master.nvidia.com/<group>/<project>/-/settings/merge_requests
+```
+
+Save the change and rerun the audit. If the author-approval or per-MR override
+checks also fail, correct those specific controls as described in the
+[configuration reference](reference.md#repository-approval-safeguards).
+Audit failures or a Maintainer-only `403` should be reported in the MR, but do
+not prevent committing, pushing, or opening the MR for human review.
+
 ## What you built
 
 - `pass` holds each group token once, encrypted with GnuPG.
 - `.envrc` selects exactly one token for `glab` based on the current workspace.
 - Git Credential Manager retains credentials independently by HTTPS repository
   path, either through the helper or a normal Git prompt.
+- GitLab requires an independent approval before repository changes can merge.
 
 Next, read [why this is split by client and workspace](explanation.md), and
 use [the rotation how-to](how-to/rotate-or-replace-a-group-token.md) when a

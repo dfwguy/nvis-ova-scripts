@@ -68,10 +68,11 @@ Treat these as independent identities:
 | Push actor | Credential selected by Git Credential Manager |
 | Merge-request author | Token used when the MR is created |
 
-Before the first commit, push, or MR operation, ask whether submissions should
-belong to the human or the group bot. Never infer commit attribution from the
-push token. Prefer repository-local Git identity so unrelated repositories are
-not affected.
+Before the first commit, push, or MR operation, determine and state which
+identities the configured tools will use. Ask only when no identity can be
+resolved or the configuration conflicts with the user's stated preference.
+Never infer commit attribution from the push token. Prefer repository-local
+Git identity so unrelated repositories are not affected.
 
 When the active token should own commits, resolve its `name` and `commit_email`
 from `glab api user`, then configure those exact values locally. Run:
@@ -88,17 +89,18 @@ scripts/audit-submission-identity.sh \
   --expected-name NAME --expected-email EMAIL [--base REF] [workspace]
 ```
 
-Stop before push or merge when existing branch commits mismatch the desired
-identity. Rewriting published commits requires explicit approval and a
-`--force-with-lease` push. An existing MR retains its original author; recreate
-it under the intended token if MR attribution also matters. After pushing,
-verify the push actor through GitLab project events when attribution is
-important.
+Treat existing branch commits with different metadata as attribution findings,
+not blockers to commit, push, or MR creation. Report the mismatches for human
+review and use the resolved identity for new commits. Rewriting published
+commits requires explicit approval and a `--force-with-lease` push. An existing
+MR retains its original author; recreate it under the intended token only when
+the user explicitly requests different MR attribution. After pushing, verify
+the push actor through GitLab project events when attribution is important.
 
 ## Verify repository approval safeguards
 
-Treat project governance as part of configuring a write credential. Before
-relying on write access, verify all three conditions:
+Treat project governance as information needed for human merge review. Audit
+these three conditions when possible:
 
 - At least one applicable project approval rule requires one or more approvals.
 - Merge-request authors cannot approve their own merge requests.
@@ -114,7 +116,9 @@ scripts/audit-repository-approvals.sh [--project ID_OR_PATH] [workspace]
 Reading project approval settings requires a Maintainer token. A `403` with a
 Developer group token is inconclusive, not a pass. Prefer a human Maintainer for
 this one-time governance check; do not elevate an automation token solely to
-inspect or change approval policy.
+inspect or change approval policy. A failed or inconclusive audit does not
+block committing, pushing, or opening/updating an MR; report it to the human
+reviewer and leave the merge decision to them.
 
 If configuration is authorized and the audit fails, have a Maintainer use
 **Settings > Merge requests > Approvals** to require at least one approval,
@@ -122,6 +126,38 @@ enable **Prevent approval by merge request creator**, and enable **Prevent
 editing approval rules in merge requests**. Rerun the audit afterward. Do not
 infer these settings from GitLab defaults or from one MR's current approval
 count.
+
+When the audit reports that no approval rule requires an approval, explain
+that the user only needs to set the number of required approvals to `1`, and
+include the project's direct merge-request settings URL. Do not imply that
+other settings need changes when their audit checks passed. For other missing
+safeguards, state the specific control that needs changing and include the same
+URL. Resolve the project web URL from GitLab or the `origin` remote and append
+`/-/settings/merge_requests`; for example:
+`https://gitlab-master.nvidia.com/nvis-ova/validation/-/settings/merge_requests`.
+Do not provide only menu-navigation text or a generic GitLab documentation URL.
+
+## Publish repository changes for human review
+
+When a user asks for repository changes, do not stop with uncommitted or
+unpushed local work unless the user explicitly requests a local-only result.
+Run the submission-identity and repository-approval audits when possible,
+capture their findings, and continue publishing whether they pass, fail, or
+are inconclusive:
+
+1. Commit only the scoped changes using the confirmed commit identity.
+2. Push the feature branch using the confirmed push credential.
+3. Create a merge request using the confirmed MR-author token when the branch
+   does not already have an appropriate open MR. Otherwise, update and report
+   the existing MR instead of creating a duplicate.
+4. Leave merging and approval to an independent human reviewer; never
+   self-approve or merge the MR.
+5. Report the pushed branch and direct merge-request URL.
+
+Include audit findings in the handoff or MR description so a human can address
+them before merge. Only an actual inability to commit, authenticate, push, or
+create/update the MR blocks publication. Never describe local-only changes as
+fully delivered without disclosing such a blocker.
 
 ## Create and configure
 
@@ -181,7 +217,8 @@ Interpret failures as follows:
 - `401`: wrong, expired, revoked, or stale saved token.
 - `403`: insufficient role or scope.
 - `403` from the repository approval audit: rerun in a Maintainer context;
-  Developer access cannot verify the protected project settings.
+  Developer access cannot verify the protected project settings. Report the
+  inconclusive result for human review and continue publishing the MR.
 - `404` from one `glab` project lookup: first rule out old-client path resolution by querying the numeric project ID.
 - Git repeatedly prompts: confirm `credential.useHttpPath=true` and approve the credential for the exact `path=<group>/<repo>.git` context.
 

@@ -95,16 +95,49 @@ A write-capable group token should be paired with GitLab-side review controls:
 | Author approval | Disabled |
 | Per-MR approval-rule overrides | Disabled |
 
-Run `audit-repository-approvals.sh` before relying on write access. The
+Run `audit-repository-approvals.sh` to inform the human merge review. The
 approval-rule endpoint is visible to project members, but GitLab requires a
 Maintainer to read the author and override settings. A Developer-token `403`
-means the audit is incomplete; it does not prove that the defaults are safe.
+means the audit is incomplete; it does not prove that the defaults are safe,
+but it also does not block commit, push, or MR creation.
+
+When only the applicable approval-rule check fails, set the number of required
+approvals to `1`; do not change controls whose audit checks already pass. The
+audit prints the direct settings URL in this form:
+
+```text
+https://gitlab-master.nvidia.com/<group>/<project>/-/settings/merge_requests
+```
+
+For example, the validation project uses
+[this merge-request settings page](https://gitlab-master.nvidia.com/nvis-ova/validation/-/settings/merge_requests).
 
 Configure the controls under **Settings > Merge requests > Approvals**. Enable
 **Prevent approval by merge request creator** and **Prevent editing approval
 rules in merge requests**, then rerun the audit in the Maintainer context. Keep
 the normal automation token at the lowest practical role instead of elevating
 it only to administer these settings.
+
+## Repository-change completion
+
+Unless the user requests local-only work, repository changes are complete only
+after the scoped changes are committed, the feature branch is pushed, and a
+merge request is opened or updated for independent human review. Reuse the
+branch's appropriate open MR instead of creating a duplicate. Resolve these
+identities separately before publication:
+
+| Action | Identity source |
+|---|---|
+| Commit | Repository `user.name` and `user.email` |
+| Push | Git credential selected for the repository path |
+| Create merge request | Active `glab` API token |
+
+Run both repository audits when possible and publish even when they report
+identity differences, policy failures, or an inconclusive Maintainer-only
+check. Include those findings in the human-review handoff, report the pushed
+branch and merge-request URL, and do not self-approve or merge the MR. Only an
+actual inability to commit, authenticate, push, or create/update the MR is a
+publication blocker.
 
 ## Sources
 
