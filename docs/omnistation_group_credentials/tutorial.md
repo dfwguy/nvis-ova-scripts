@@ -136,10 +136,16 @@ token into this document, a command line, or a chat window.
 
 ## Step 5 — attach the token to the group workspace in convenience mode
 
-At the root of that group workspace, create `.envrc` with this one line:
+At the root of that group workspace, allow `direnv` before creating `.envrc`:
 
 ```bash
-export GITLAB_TOKEN="$(pass show gitlab/omnistation-platform/token)"
+direnv allow
+```
+
+Then create `.envrc` with `echo`:
+
+```bash
+echo 'export GITLAB_TOKEN="$(pass show gitlab/omnistation-platform/token)"' > .envrc
 ```
 
 If this directory is a Git repository, add `.envrc` to that repository's local
@@ -147,7 +153,7 @@ If this directory is a Git repository, add `.envrc` to that repository's local
 lookup: it identifies the secret-store layout and becomes executable when
 trusted by `direnv`.
 
-Approve the file:
+After creating or changing `.envrc`, approve its new contents:
 
 ```bash
 direnv allow
