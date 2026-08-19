@@ -205,10 +205,10 @@ glab auth status
 ```
 
 The environment token takes precedence over any global `glab` login. If the
-workspace has no Git remote, set the GitLab host in `.envrc` too:
+workspace has no Git remote, append the GitLab host to `.envrc` with `echo`:
 
 ```bash
-export GITLAB_HOST=gitlab-master.nvidia.com
+echo 'export GITLAB_HOST=gitlab-master.nvidia.com' >> .envrc
 ```
 
 Then test an API action appropriate to the token's scope, for example:
