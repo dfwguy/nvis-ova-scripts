@@ -159,16 +159,54 @@ them before merge. Only an actual inability to commit, authenticate, push, or
 create/update the MR blocks publication. Never describe local-only changes as
 fully delivered without disclosing such a blocker.
 
+## Initialize GPG and pass
+
+Before inserting the first group token, confirm that `pass` has a GPG recipient:
+
+```bash
+gpg --list-secret-keys --fingerprint --keyid-format long
+pass ls
+```
+
+If the password store is already initialized, reuse the recipient recorded in
+`${PASSWORD_STORE_DIR:-$HOME/.password-store}/.gpg-id`. Do not run `pass init`
+with a different recipient against a populated store unless the user intends to
+re-encrypt the existing entries.
+
+For a new password store, have the user create the key interactively in a
+trusted terminal:
+
+```bash
+gpg --full-generate-key
+```
+
+Have them choose a non-empty passphrase when prompted. After generation, obtain
+the key's full fingerprint with
+`gpg --list-secret-keys --fingerprint --keyid-format long`,
+then initialize the store themselves:
+
+```bash
+pass init <full-GPG-fingerprint>
+pass ls
+```
+
+Never ask for the GPG passphrase in chat. For gated mode, also configure the
+prompt-on-use cache settings under **Activate a human gate** before relying on
+the key as a human-presence control. Convenience mode still requires an
+initialized password store, but its exported and saved credentials bypass that
+control.
+
 ## Create and configure
 
-1. Direct a group Owner to the group's **Settings > Access Tokens** page. Have them create the bot with the needed role and scopes and copy its token immediately.
-2. Tell the user to run this themselves in a terminal:
+1. Complete **Initialize GPG and pass** if the password store is not already initialized.
+2. Direct a group Owner to the group's **Settings > Access Tokens** page. Have them create the bot with the needed role and scopes and copy its token immediately.
+3. Tell the user to run this themselves in a terminal:
 
    ```bash
    pass insert -m gitlab/<group>/token
    ```
 
-3. After they confirm the secret exists, run the bundled helper from the intended group workspace with the chosen mode. For gated mode:
+4. After they confirm the secret exists, run the bundled helper from the intended group workspace with the chosen mode. For gated mode:
 
    ```bash
    scripts/setup-workspace.sh --mode gated <group> [workspace]
@@ -176,13 +214,13 @@ fully delivered without disclosing such a blocker.
 
    Use `--host HOST` for another GitLab instance and `--dry-run` to inspect actions first. Gated mode never decrypts, exports, verifies, or approves the token. It refuses an existing `GITLAB_TOKEN` export rather than silently pretending the workspace is gated.
 
-4. For convenience mode, confirm that the user accepts that same-user agents inherit or can request the token:
+5. For convenience mode, confirm that the user accepts that same-user agents inherit or can request the token:
 
    ```bash
    scripts/setup-workspace.sh --mode convenience <group> [workspace]
    ```
 
-5. If this repository contains `scripts/clone-gitlab-group.sh`, use it only for convenience-mode clones. It must fail closed before decryption unless Git Credential Manager is the only active helper, its credential store is `gpg`, and `credential.useHttpPath=true`; it then approves the exact repository credential.
+6. If this repository contains `scripts/clone-gitlab-group.sh`, use it only for convenience-mode clones. It must fail closed before decryption unless Git Credential Manager is the only active helper, its credential store is `gpg`, and `credential.useHttpPath=true`; it then approves the exact repository credential.
 
 ## Activate a human gate
 

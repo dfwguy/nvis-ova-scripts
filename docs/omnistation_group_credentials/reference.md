@@ -64,6 +64,8 @@ deliberately reintroduce the parent environment.
 
 | Purpose | Command |
 |---|---|
+| Create a GPG key for a new password store | `gpg --full-generate-key` |
+| Initialize a new password store | `pass init <full-GPG-fingerprint>` |
 | Store/update a token | `pass insert -m gitlab/<group>/token` |
 | Trust a workspace `.envrc` | `direnv allow` |
 | Reload its environment | `direnv reload` |

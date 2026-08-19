@@ -23,23 +23,59 @@ For `git`, use a token with `read_repository` or `write_repository` as needed.
 For `glab`, use `read_api` for read-only API work or `api` for commands that
 create or change GitLab objects. See the [reference](reference.md#token-scopes).
 
-## Step 1 — install `pass`
+## Step 1 — install and initialize `pass`
 
 Install the standard Ubuntu package:
 
 ```bash
 sudo apt update
-sudo apt install -y pass
+sudo apt install -y pass gnupg
 ```
 
 Confirm that it is available before continuing:
 
 ```bash
 pass --version
+gpg --version
 ```
 
-`pass` encrypts secrets with GnuPG. Ensure GnuPG is installed and that you have
-an encryption key available before storing a token.
+`pass` encrypts secrets to a GnuPG key. First check whether this password store
+is already initialized and list the secret keys available to you:
+
+```bash
+pass ls
+gpg --list-secret-keys --fingerprint --keyid-format long
+```
+
+If `${PASSWORD_STORE_DIR:-$HOME/.password-store}/.gpg-id` already exists, reuse
+the recipient recorded there. Do not run `pass init` with a different recipient
+against a populated store unless you intend to re-encrypt its existing entries.
+
+For a new password store with no suitable key, create one interactively in a
+trusted terminal:
+
+```bash
+gpg --full-generate-key
+```
+
+Use a non-empty passphrase when GnuPG's pinentry window prompts. Never paste the
+passphrase into a command, document, or chat. When key generation finishes,
+display the full fingerprint:
+
+```bash
+gpg --list-secret-keys --fingerprint --keyid-format long
+```
+
+Initialize `pass` with that full fingerprint, then verify the store:
+
+```bash
+pass init <full-GPG-fingerprint>
+pass ls
+```
+
+The password store is now ready for the group token in step 4. If you need the
+passphrase to act as a human-presence gate, use the gated-mode guide instead of
+relying on this convenience-mode tutorial.
 
 ## Step 2 — configure Git to distinguish repositories
 
