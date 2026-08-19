@@ -74,7 +74,7 @@ deliberately reintroduce the parent environment.
 | Configure convenience mode | `.agents/skills/configure-gitlab-group-credentials/scripts/setup-workspace.sh --mode convenience <group>` |
 | Audit commit identity against active token | `.agents/skills/configure-gitlab-group-credentials/scripts/audit-submission-identity.sh --from-token` |
 | Audit required review and author restrictions | `.agents/skills/configure-gitlab-group-credentials/scripts/audit-repository-approvals.sh` |
-| Check the active `glab` authentication | `glab auth status` |
+| Check workspace `glab` authentication | `glab api user --hostname "$GITLAB_HOST"` |
 | Remove a saved Git credential | `git credential reject` |
 | Clone with the matching group token | `scripts/clone-gitlab-group.sh <group> <https-url>` |
 

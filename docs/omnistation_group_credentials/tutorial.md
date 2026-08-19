@@ -201,12 +201,18 @@ with—the parent context. Do not call `source_up` from a group `.envrc`.
 From inside a repository that has the expected GitLab remote, run:
 
 ```bash
-glab auth status
+glab api user
 ```
 
-With the group credential configured, output can include an unrelated
-`gitlab.com` health-check failure while still showing a successful login to the
-internal host:
+This is the authoritative workspace-level check: it must return the group bot
+user and a `web_url` on `https://gitlab-master.nvidia.com/`. It exercises the
+current `GITLAB_HOST` and `GITLAB_TOKEN` environment, without relying on a
+host-level saved `glab` login.
+
+`glab auth status` is not a reliable substitute on older `glab` releases. For
+example, version 1.36.0 checks the hosts saved in its configuration and can
+report only an unrelated `gitlab.com` entry even when the workspace environment
+correctly targets the internal host:
 
 ```text
 gitlab.com
@@ -216,19 +222,18 @@ gitlab.com
   ✓ REST API Endpoint: https://gitlab.com/api/v4/
   ✓ GraphQL Endpoint: https://gitlab.com/api/graphql/
   x No token provided
-gitlab-master.nvidia.com
-  ✓ Logged in to gitlab-master.nvidia.com as group_401322_bot_0e1d817031eb4e55d4723de40cc8b6f2 (/home/breese/.config/glab-cli/config.yml)
-  ✓ Git operations for gitlab-master.nvidia.com configured to use https protocol.
-  ✓ API calls for gitlab-master.nvidia.com are made over https protocol
-  ✓ REST API Endpoint: https://gitlab-master.nvidia.com/api/v4/
-  ✓ GraphQL Endpoint: https://gitlab-master.nvidia.com/api/graphql/
-  ✓ Token: **************************
 ```
 
-The `gitlab.com` entry does not affect authentication to
-`gitlab-master.nvidia.com`. The environment token takes precedence over any
-global `glab` login. If the workspace has no Git remote, append the GitLab host
-to `.envrc` with `echo`:
+That output is a health/authentication result for `gitlab.com`, not for the
+workspace's `gitlab-master.nvidia.com` environment. To test the intended host
+explicitly, use:
+
+```bash
+glab api user --hostname "$GITLAB_HOST"
+```
+
+The environment token takes precedence over any global `glab` login. If the
+workspace has no Git remote, append the GitLab host to `.envrc` with `echo`:
 
 ```bash
 echo 'export GITLAB_HOST=gitlab-master.nvidia.com' >> .envrc
