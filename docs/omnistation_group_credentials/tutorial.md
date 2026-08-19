@@ -204,18 +204,41 @@ From inside a repository that has the expected GitLab remote, run:
 glab auth status
 ```
 
-The environment token takes precedence over any global `glab` login. If the
-workspace has no Git remote, append the GitLab host to `.envrc` with `echo`:
+With the group credential configured, output can include an unrelated
+`gitlab.com` health-check failure while still showing a successful login to the
+internal host:
+
+```text
+gitlab.com
+  x gitlab.com: api call failed: Get "https://gitlab.com/api/v4/user": read tcp 192.168.117.79:56990->172.65.251.78:443: read: connection reset by peer
+  ✓ Git operations for gitlab.com configured to use ssh protocol.
+  ✓ API calls for gitlab.com are made over https protocol
+  ✓ REST API Endpoint: https://gitlab.com/api/v4/
+  ✓ GraphQL Endpoint: https://gitlab.com/api/graphql/
+  x No token provided
+gitlab-master.nvidia.com
+  ✓ Logged in to gitlab-master.nvidia.com as group_401322_bot_0e1d817031eb4e55d4723de40cc8b6f2 (/home/breese/.config/glab-cli/config.yml)
+  ✓ Git operations for gitlab-master.nvidia.com configured to use https protocol.
+  ✓ API calls for gitlab-master.nvidia.com are made over https protocol
+  ✓ REST API Endpoint: https://gitlab-master.nvidia.com/api/v4/
+  ✓ GraphQL Endpoint: https://gitlab-master.nvidia.com/api/graphql/
+  ✓ Token: **************************
+```
+
+The `gitlab.com` entry does not affect authentication to
+`gitlab-master.nvidia.com`. The environment token takes precedence over any
+global `glab` login. If the workspace has no Git remote, append the GitLab host
+to `.envrc` with `echo`:
 
 ```bash
 echo 'export GITLAB_HOST=gitlab-master.nvidia.com' >> .envrc
 ```
 
-Then test an API action appropriate to the token's scope, for example:
-
-```bash
-glab repo view
-```
+This credential cannot list repositories. Consequently, commands such as
+`glab repo view` that need repository discovery can correctly return `404 Not
+Found`; do not treat that result as an authentication failure. Verify access
+using the known repository remote (for example, `git ls-remote origin`) rather
+than a repository-listing command.
 
 Do not use `glab auth login` to switch between group tokens on the same host:
 it sets a host-level default rather than a workspace-level one.
