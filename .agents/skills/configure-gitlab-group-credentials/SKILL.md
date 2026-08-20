@@ -34,6 +34,17 @@ Do not characterize either choice as universally required. If the user has alrea
 - The gate is bypassed by any plaintext or already-decrypted copy in `GITLAB_TOKEN`, `glab` config, Git Credential Manager, another process, or gpg-agent cache.
 - Once a same-user agent is allowed to decrypt a token, it can potentially use or copy it. For a hard boundary, keep write credentials in a separate OS account, workstation, or human-operated credential broker that the agent cannot access. Use protected branches and required MR approvals as defense in depth.
 
+The GPG private-key passphrase is the user's explicit convenience choice:
+
+- **Empty passphrase:** convenience. Any process running as that Unix user can
+  use the private key without a prompt, including to decrypt other `pass`
+  entries and other data encrypted to that key. This is required before an
+  agent can use the convenience workspace automatically.
+- **Non-empty passphrase with GPG-agent caching disabled:** gated. The user
+  enters it in a trusted pinentry window before a human-only operation. Do not
+  export the token or save it in Git Credential Manager or `glab` from the
+  agent-accessible account.
+
 Run the bundled read-only audit without decrypting the token:
 
 ```bash
@@ -180,8 +191,13 @@ trusted terminal:
 gpg --full-generate-key
 ```
 
-Have them choose a non-empty passphrase when prompted. After generation, obtain
-the key's full fingerprint with
+Tell them to choose a signing-and-encryption key (the GnuPG `ECC (sign and
+encrypt)` default where offered), accept the default curve, and set expiration
+to `0` (does not expire). Then require an explicit choice at the passphrase
+prompt: leave it empty for convenience mode, or use a non-empty passphrase for
+gated mode. Explain that an empty passphrase permits the same Unix user and
+its agents to decrypt every secret or file protected by that private key.
+After generation, obtain the key's full fingerprint with
 `gpg --list-secret-keys --fingerprint --keyid-format long`,
 then initialize the store themselves:
 

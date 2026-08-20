@@ -5,6 +5,25 @@ Codex to create, human-gate, audit, verify, rotate, or troubleshoot a group-
 scoped GitLab setup. The skill presents gated and convenience paths and
 requires an explicit choice.
 
+The intended result is one encrypted token at `pass:gitlab/<group>/token`, a
+group-workspace `.envrc`, and a verification result without exposing the token.
+Use the [skill-first tutorial](../tutorial.md) for the complete first-time
+workflow. This page is the short reference for invoking, installing, and
+checking the skill.
+
+## Select the passphrase and workspace mode
+
+Make this choice explicitly before asking Codex to configure anything:
+
+| Mode | GPG private-key passphrase | Consequence |
+|---|---|---|
+| Convenience | Empty | `direnv`, Git Credential Manager, `git`, `glab`, and same-user agents can automatically use the workspace credential. The same private key can also decrypt other data protected with it. |
+| Gated | Non-empty, with GPG-agent caching disabled | Codex configures only non-secret workspace metadata. Authenticated operations remain in a trusted human context. |
+
+Leaving the passphrase empty is a convenience feature, not isolation from a
+same-user agent or another person sharing that Unix account. The full setup
+and verification implications are in [the tutorial](../tutorial.md).
+
 ## Invoke it
 
 Ask Codex directly, for example:
@@ -129,6 +148,22 @@ a human-presence control.
 
 The token must already exist at `pass:gitlab/nvis-ova/token`. Never paste it
 or its GPG passphrase into a Codex conversation.
+
+## Verify the setup
+
+Ask Codex to verify the configured workspace using the same skill. In
+convenience mode it checks `direnv`, the active `glab` identity, known Git
+repository access, and the approval audit. In gated mode it runs the
+non-decrypting agent-gate audit; authenticated checks remain in the trusted
+human context.
+
+```text
+Use $configure-gitlab-group-credentials to verify the nvis-ova workspace in
+its current mode.
+```
+
+For manual verification commands and failure interpretation, use the
+[manual setup how-to](configure-manually.md#verify-the-setup).
 
 ## Keep the installed copy current
 

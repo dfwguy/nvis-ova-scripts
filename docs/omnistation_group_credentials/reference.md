@@ -60,6 +60,18 @@ Group workspace `.envrc` files supersede a `~/git/.envrc` for repositories
 below that workspace. Do not use `source_up` in them, because that would
 deliberately reintroduce the parent environment.
 
+## GPG private-key passphrase
+
+| Choice | Supported mode | Security consequence |
+|---|---|---|
+| Empty passphrase | Convenience | Any process under the same Unix user can decrypt this key's `pass` entries and other data encrypted to the key. |
+| Non-empty passphrase with caching disabled | Gated | A trusted human must enter the passphrase before decryption. This does not protect any previously exported or saved bearer token. |
+
+Create a new key with signing and encryption capability (normally GnuPG's
+`ECC (sign and encrypt)` default), accept its default curve, and choose `0` for
+no expiration. The [skill tutorial](tutorial.md) explains when to choose each
+passphrase option.
+
 ## Commands
 
 | Purpose | Command |

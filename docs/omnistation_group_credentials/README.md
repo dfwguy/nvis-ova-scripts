@@ -12,8 +12,9 @@ explanation provides the reasoning behind it.
 
 | Type | Document | Use it when |
 |---|---|---|
-| Tutorial | [Set up group credentials](tutorial.md) | First-time setup of Git Credential Manager, `pass`, and `direnv` |
-| How-to | [Use the Codex skill](how-to/use-the-codex-skill.md) | You want Codex to configure, verify, rotate, or troubleshoot a group credential |
+| Tutorial | [Set up group credentials with the Codex skill](tutorial.md) | First-time setup; this is the recommended path |
+| How-to | [Use the Codex skill](how-to/use-the-codex-skill.md) | You want the concise invocation, installation, and verification reference |
+| How-to | [Configure group credentials manually](how-to/configure-manually.md) | You cannot use Codex or need to inspect every command yourself |
 | How-to | [Gate credentials from agents](how-to/gate-credentials-from-agents.md) | You need human presence before a same-user agent can obtain a write token |
 | How-to | [Clone a repository with its group token](how-to/clone-a-group-repository.md) | You want a new checkout without using a broad main credential |
 | How-to | [Rotate or replace a group token](how-to/rotate-or-replace-a-group-token.md) | A token expires, is rotated, or might have been exposed |
@@ -27,6 +28,6 @@ hostname if Omnistation uses a different instance. The token value never
 belongs in Git configuration, a remote URL, shell history, or a committed file.
 
 This guide assumes Ubuntu with Git Credential Manager installed. The
-[tutorial](tutorial.md#step-1--install-and-initialize-pass) includes Ubuntu
-installation commands for `pass`, GnuPG, and `direnv`. It does not create,
-grant, or revoke GitLab tokens; group owners manage those in GitLab.
+[skill-first tutorial](tutorial.md) guides installation of `pass`, GnuPG, and
+`direnv`, then asks Codex to configure and verify the selected mode. It does
+not create, grant, or revoke GitLab tokens; group owners manage those in GitLab.
